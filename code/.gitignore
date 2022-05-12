@@ -1,0 +1,10 @@
+# pyenv
+.python-version
+
+# Python stuff
+__pycache__/
+.mypy_cache/
+
+# Project-specific stuff
+logs/
+configs/
