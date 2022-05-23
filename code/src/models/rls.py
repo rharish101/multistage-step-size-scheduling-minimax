@@ -33,12 +33,15 @@ class RLS(LightningModule):
         self.x = Parameter(torch.zeros(self.NUM_FEATURES, 1))
         self.y = Parameter(torch.zeros(self.NUM_EXAMPLES, 1))
 
-        self.A = torch.randn(self.NUM_EXAMPLES, self.NUM_FEATURES)
-        self.M = torch.eye(self.NUM_EXAMPLES)
+        self.A = Parameter(
+            torch.randn(self.NUM_EXAMPLES, self.NUM_FEATURES),
+            requires_grad=False,
+        )
+        self.M = Parameter(torch.eye(self.NUM_EXAMPLES), requires_grad=False)
 
         x_star = torch.randn(self.NUM_FEATURES, 1)
         epsilon = torch.randn(self.NUM_EXAMPLES, 1) * self.NOISE_STDDEV
-        self.y_0 = self.A @ x_star + epsilon
+        self.y_0 = Parameter(self.A @ x_star + epsilon, requires_grad=False)
 
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
@@ -63,11 +66,11 @@ class RLS(LightningModule):
         self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
     ) -> torch.Tensor:
         """Run one training step."""
-        term_1 = self.A.to(self.x.device) @ self.x - self.y
-        term_2 = self.y - self.y_0.to(self.y.device)
+        term_1 = self.A @ self.x - self.y
+        term_2 = self.y - self.y_0
         loss = (
-            term_1.T @ self.M.to(term_1.device) @ term_1
-            - self.CONST_WT * term_2.T @ self.M.to(term_2.device) @ term_2
+            term_1.T @ self.M @ term_1
+            - self.constr_wt * term_2.T @ self.M @ term_2
         )
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
