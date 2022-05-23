@@ -2,7 +2,7 @@
 import math
 
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import MultiStepLR, StepLR
+from torch.optim.lr_scheduler import LambdaLR, MultiStepLR, StepLR
 
 from .config import Config
 
@@ -18,6 +18,8 @@ def get_scheduler(optim: Optimizer, config: Config):
             config.start_phase_len,
             config.total_steps,
         )
+    elif config.sched == "const":
+        return LambdaLR(optim, lambda _: 1.0)
     else:
         raise ValueError(f"Invalid scheduler: {config.sched}")
 

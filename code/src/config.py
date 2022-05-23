@@ -12,7 +12,7 @@ class Config:
 
     Attributes:
         batch_size: The batch size for training
-        sched: The choice of scheduler (must be one of: step, var)
+        sched: The choice of scheduler (must be one of: const, step, var)
         gen_lr: The maximum learning rate for the generator
         crit_lr: The maximum learning rate for the critic
         decay: The learning rate decay factor
