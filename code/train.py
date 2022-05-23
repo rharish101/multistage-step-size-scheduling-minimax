@@ -68,7 +68,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "task",
-        choices=["wgan/linear", "wgan/nn", "rls"],
+        choices=["wgan/linear", "wgan/nn", "rls/low", "rls/high"],
         help="A string specifying the optimization task",
     )
     parser.add_argument(

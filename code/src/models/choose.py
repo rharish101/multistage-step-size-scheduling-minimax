@@ -2,7 +2,7 @@
 from pytorch_lightning import LightningModule
 
 from ..config import Config
-from .rls import RLS
+from .rls import RLSHighConditionNum, RLSLowConditionNum
 from .wgan import WGAN
 
 
@@ -15,7 +15,9 @@ def get_model(task: str, config: Config) -> LightningModule:
     """
     if task.startswith("wgan/"):
         return WGAN(config, gen_type=task.split("/")[1])
-    elif task == "rls":
-        return RLS(config)
+    elif task == "rls/low":
+        return RLSLowConditionNum(config)
+    elif task == "rls/high":
+        return RLSHighConditionNum(config)
     else:
         raise ValueError(f"Invalid task: {task}")

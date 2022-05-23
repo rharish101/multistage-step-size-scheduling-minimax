@@ -1,8 +1,11 @@
 """Class definitions for robust least squares."""
+import math
+from abc import ABC, abstractmethod
 from typing import Any, Dict, Final, Tuple
 
 import torch
 from pytorch_lightning import LightningModule
+from torch.distributions import MultivariateNormal
 from torch.nn import Parameter
 from torch.optim import SGD
 
@@ -10,38 +13,52 @@ from ..config import Config
 from ..schedulers import get_scheduler
 
 
-class RLS(LightningModule):
-    """The robust least squares model with a soft constraint.
+class RLSBase(ABC, LightningModule):
+    """Base class for a robust least squares model with a soft constraint.
 
     Adapted from: http://arxiv.org/abs/2002.09621
     """
 
-    NUM_EXAMPLES: Final = 1000
-    NUM_FEATURES: Final = 500
-    CONSTR_WT: Final = 3.0
-    NOISE_STDDEV: Final = 0.01
-
-    def __init__(self, config: Config):
+    def __init__(
+        self,
+        config: Config,
+        constr_wt: float = 3.0,
+        num_examples: int = 1000,
+        num_features: int = 500,
+        noise_stddev: float = 0.1,
+    ):
         """Initialize and store everything needed for training.
 
         Args:
             config: The hyper-param config
+            constr_wt: The weight of the constraint term
+            num_examples: The number of examples in the input matrix
+            num_features: The number of features in the input matrix
+            noise_stddev: The standard deviation of the added noise
         """
         super().__init__()
         self.config = config
+        self.constr_wt = constr_wt
+        self.num_examples = num_examples
+        self.num_features = num_features
 
-        self.x = Parameter(torch.zeros(self.NUM_FEATURES, 1))
-        self.y = Parameter(torch.zeros(self.NUM_EXAMPLES, 1))
+        self.x = Parameter(torch.zeros(num_features, 1))
+        self.y = Parameter(torch.zeros(num_examples, 1))
 
-        self.A = Parameter(
-            torch.randn(self.NUM_EXAMPLES, self.NUM_FEATURES),
-            requires_grad=False,
-        )
-        self.M = Parameter(torch.eye(self.NUM_EXAMPLES), requires_grad=False)
+        self.A = Parameter(self._get_input_matrix(), requires_grad=False)
+        self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
 
-        x_star = torch.randn(self.NUM_FEATURES, 1)
-        epsilon = torch.randn(self.NUM_EXAMPLES, 1) * self.NOISE_STDDEV
+        x_star = torch.randn(num_features, 1)
+        epsilon = torch.randn(num_examples, 1) * noise_stddev
         self.y_0 = Parameter(self.A @ x_star + epsilon, requires_grad=False)
+
+    @abstractmethod
+    def _get_input_matrix(self) -> torch.Tensor:
+        """Return the input matrix for the RLS problem."""
+
+    @abstractmethod
+    def _get_norm_matrix(self) -> torch.Tensor:
+        """Return the norm matrix for matrix (semi-)norm."""
 
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
@@ -97,3 +114,61 @@ class RLS(LightningModule):
         self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
 
         self.log("loss_hist", loss)
+
+
+class RLSLowConditionNum(RLSBase):
+    """The robust least squares model with a low condition number."""
+
+    def __init__(self, config: Config):
+        """Initialize and store everything needed for training.
+
+        Args:
+            config: The hyper-param config
+        """
+        super().__init__(config)
+
+    def _get_input_matrix(self) -> torch.Tensor:
+        return torch.randn(self.num_examples, self.num_features)
+
+    def _get_norm_matrix(self) -> torch.Tensor:
+        return torch.eye(self.num_examples)
+
+
+class RLSHighConditionNum(RLSBase):
+    """The robust least squares model with a high condition number."""
+
+    CONSTR_WT: Final = 1.5
+    RANK_FRACTION: Final = 0.95
+    EIGENVAL_MIN: Final = 0.2
+    EIGENVAL_MAX: Final = 1.8
+
+    def __init__(self, config: Config):
+        """Initialize and store everything needed for training.
+
+        Args:
+            config: The hyper-param config
+        """
+        super().__init__(config, constr_wt=self.CONSTR_WT)
+
+    def _get_input_matrix(self) -> torch.Tensor:
+        A_covar = torch.empty(self.num_features, self.num_features)
+        for i in range(self.num_features):
+            for j in range(self.num_features):
+                A_covar[i, j] = 2 ** (-math.fabs(i - j) / 10)
+
+        A_distr = MultivariateNormal(torch.zeros(self.num_features), A_covar)
+        return A_distr.sample([self.num_examples])
+
+    def _get_norm_matrix(self) -> torch.Tensor:
+        eigenvecs = torch.linalg.qr(
+            torch.randn(self.num_examples, self.num_examples)
+        )[0]
+        rank = int(self.RANK_FRACTION * self.num_examples)
+        eigenvals = torch.cat(
+            [
+                torch.rand(rank) * (self.EIGENVAL_MAX - self.EIGENVAL_MIN)
+                + self.EIGENVAL_MIN,
+                torch.zeros(self.num_examples - rank),
+            ]
+        )
+        return eigenvecs.T @ torch.diagflat(eigenvals) @ eigenvecs
