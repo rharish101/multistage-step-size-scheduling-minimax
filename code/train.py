@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from src.config import load_config
 from src.data import StandardNormalDataset
-from src.models import WGAN
+from src.models import get_model
 
 
 def main(args: Namespace) -> None:
@@ -24,11 +24,11 @@ def main(args: Namespace) -> None:
     else:
         run_name = args.run_name
     logger = TensorBoardLogger(
-        args.log_dir, name="", version=run_name, default_hp_metric=False
+        args.log_dir, name=args.task, version=run_name, default_hp_metric=False
     )
     logger.log_hyperparams(vars(config))
 
-    model = WGAN(config)
+    model = get_model(args.task, config)
 
     # Detect if we're using CPUs, because there's no AMP on CPUs
     if args.num_gpus == 0 or (
@@ -65,6 +65,11 @@ if __name__ == "__main__":
     parser = ArgumentParser(
         description="Train a GAN model",
         formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "task",
+        choices=["wgan/linear", "wgan/nn", "rls"],
+        help="A string specifying the optimization task",
     )
     parser.add_argument(
         "-c",

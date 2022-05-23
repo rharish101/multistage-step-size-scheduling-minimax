@@ -11,7 +11,6 @@ class Config:
     """Class to hold hyper-parameter configs.
 
     Attributes:
-        gen_type: The type of generator (must be one of: linear, nn)
         batch_size: The batch size for training
         sched: The choice of scheduler (must be one of: step, var)
         gen_lr: The maximum learning rate for the generator
@@ -23,7 +22,6 @@ class Config:
         seed: The global random seed (for reproducibility)
     """
 
-    gen_type: str = "linear"
     batch_size: int = 100
     sched: str = "step"
     gen_lr: float = 1e-2
