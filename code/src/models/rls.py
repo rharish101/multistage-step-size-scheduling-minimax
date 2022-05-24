@@ -48,9 +48,26 @@ class RLSBase(ABC, LightningModule):
         self.A = Parameter(self._get_input_matrix(), requires_grad=False)
         self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
 
-        x_star = torch.randn(num_features, 1)
+        x_orig = torch.randn(num_features, 1)
         epsilon = torch.randn(num_examples, 1) * noise_stddev
-        self.y_0 = Parameter(self.A @ x_star + epsilon, requires_grad=False)
+        self.y_0 = Parameter(self.A @ x_orig + epsilon, requires_grad=False)
+
+        term_1 = torch.linalg.pinv(self.A.T @ self.M @ self.A)
+        self.x_star = Parameter(
+            term_1 @ self.A.T @ self.M @ self.y_0,
+            requires_grad=False,
+        )
+
+        self.y_star = Parameter(
+            (constr_wt * self.y_0 - self.A @ self.x_star) / (constr_wt - 1),
+            requires_grad=False,
+        )
+
+        term_2 = self.A @ self.x_star - self.y_0
+        self.g_star = Parameter(
+            self.constr_wt / (self.constr_wt - 1) * term_2.T @ self.M @ term_2,
+            requires_grad=False,
+        )
 
     @abstractmethod
     def _get_input_matrix(self) -> torch.Tensor:
@@ -113,7 +130,15 @@ class RLSBase(ABC, LightningModule):
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
         self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
 
-        self.log("loss_hist", loss)
+        x_dist = (self.x - self.x_star).squeeze()
+        y_dist = (self.y - self.y_star).squeeze()
+        dist = x_dist.dot(x_dist) + y_dist.dot(y_dist)
+        self.log("loss/distance", dist)
+
+        term = self.A @ self.x - self.y_0
+        g_x = self.constr_wt / (self.constr_wt - 1) * term.T @ self.M @ term
+        potential = 2 * g_x - self.g_star - loss
+        self.log("loss/potential", potential)
 
 
 class RLSLowConditionNum(RLSBase):
