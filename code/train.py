@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from src.config import load_config
 from src.data import StandardNormalDataset
-from src.models import get_model
+from src.models import AVAIL_TASKS, get_model
 
 
 def main(args: Namespace) -> None:
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "task",
-        choices=["wgan/linear", "wgan/nn", "rls/low", "rls/high"],
+        choices=AVAIL_TASKS,
         help="A string specifying the optimization task",
     )
     parser.add_argument(
