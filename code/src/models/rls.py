@@ -22,6 +22,7 @@ class RLSBase(ABC, LightningModule):
     def __init__(
         self,
         config: Config,
+        stochastic: bool,
         constr_wt: float = 3.0,
         num_examples: int = 1000,
         num_features: int = 500,
@@ -31,6 +32,7 @@ class RLSBase(ABC, LightningModule):
 
         Args:
             config: The hyper-param config
+            stochastic: Whether to have stochasticity in the gradients
             constr_wt: The weight of the constraint term
             num_examples: The number of examples in the input matrix
             num_features: The number of features in the input matrix
@@ -38,6 +40,7 @@ class RLSBase(ABC, LightningModule):
         """
         super().__init__()
         self.config = config
+        self.stochastic = stochastic
         self.constr_wt = constr_wt
         self.num_examples = num_examples
         self.num_features = num_features
@@ -100,23 +103,30 @@ class RLSBase(ABC, LightningModule):
         self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
     ) -> torch.Tensor:
         """Run one training step."""
-        term_1 = self.A @ self.x - self.y
-        term_2 = self.y - self.y_0
+        # Stochastic indices to only choose certain "examples" for a batch
+        if self.stochastic:
+            idxs = torch.randperm(self.num_examples)[: self.config.batch_size]
+        else:
+            idxs = torch.arange(self.num_examples)
+
+        term_1 = self.A[idxs] @ self.x - self.y[idxs]
+        term_2 = self.y[idxs] - self.y_0[idxs]
+        term_3 = self.M[idxs][:, idxs]
         loss = (
-            term_1.T @ self.M @ term_1
-            - self.constr_wt * term_2.T @ self.M @ term_2
+            term_1.T @ term_3 @ term_1
+            - self.constr_wt * term_2.T @ term_3 @ term_2
         )
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
             with torch.no_grad():
-                self._log_rls_metrics(batch_idx, loss)
+                self._log_rls_metrics(batch_idx)
 
         if optimizer_idx == 0:  # y update
             return -loss
         else:  # x update
             return loss
 
-    def _log_rls_metrics(self, global_step: int, loss: torch.Tensor) -> None:
+    def _log_rls_metrics(self, global_step: int) -> None:
         """Log all metrics."""
         if self.x.grad is not None:
             gx = self.x.grad.detach().reshape(-1)
@@ -135,22 +145,31 @@ class RLSBase(ABC, LightningModule):
         dist = x_dist.dot(x_dist) + y_dist.dot(y_dist)
         self.log("loss/distance", dist)
 
-        term = self.A @ self.x - self.y_0
-        g_x = self.constr_wt / (self.constr_wt - 1) * term.T @ self.M @ term
-        potential = 2 * g_x - self.g_star - loss
+        term_1 = self.A @ self.x - self.y
+        term_2 = self.y - self.y_0
+        f_xy = (
+            term_1.T @ self.M @ term_1
+            - self.constr_wt * term_2.T @ self.M @ term_2
+        )
+        term_3 = self.A @ self.x - self.y_0
+        g_x = (
+            self.constr_wt / (self.constr_wt - 1) * term_3.T @ self.M @ term_3
+        )
+        potential = 2 * g_x - self.g_star - f_xy
         self.log("loss/potential", potential)
 
 
 class RLSLowConditionNum(RLSBase):
     """The robust least squares model with a low condition number."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, stochastic: bool):
         """Initialize and store everything needed for training.
 
         Args:
             config: The hyper-param config
+            stochastic: Whether to have stochasticity in the gradients
         """
-        super().__init__(config)
+        super().__init__(config, stochastic)
 
     def _get_input_matrix(self) -> torch.Tensor:
         return torch.randn(self.num_examples, self.num_features)
@@ -167,13 +186,14 @@ class RLSHighConditionNum(RLSBase):
     EIGENVAL_MIN: Final = 0.2
     EIGENVAL_MAX: Final = 1.8
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, stochastic: bool):
         """Initialize and store everything needed for training.
 
         Args:
             config: The hyper-param config
+            stochastic: Whether to have stochasticity in the gradients
         """
-        super().__init__(config, constr_wt=self.CONSTR_WT)
+        super().__init__(config, stochastic, constr_wt=self.CONSTR_WT)
 
     def _get_input_matrix(self) -> torch.Tensor:
         A_covar = torch.empty(self.num_features, self.num_features)

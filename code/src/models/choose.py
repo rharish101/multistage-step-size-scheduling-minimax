@@ -21,7 +21,7 @@ def _combine_desc(*args: Iterable[str]) -> Iterable[str]:
 
 AVAIL_TASKS: Final = [
     *_combine_desc(["wgan"], ["linear", "nn"]),
-    *_combine_desc(["rls"], ["low", "high"]),
+    *_combine_desc(["rls"], ["low", "high"], ["full", "stoc"]),
 ]
 
 
@@ -40,10 +40,17 @@ def get_model(task: str, config: Config) -> LightningModule:
     if desc[0] == "wgan":
         return WGAN(config, gen_type=task.split("/")[1])
     elif desc[0] == "rls":
+        if desc[2] == "stoc":
+            stochastic = True
+        elif desc[2] == "full":
+            stochastic = False
+        else:
+            _invalid_task_err(task)
+
         if desc[1] == "low":
-            return RLSLowConditionNum(config)
+            return RLSLowConditionNum(config, stochastic)
         elif desc[1] == "high":
-            return RLSHighConditionNum(config)
+            return RLSHighConditionNum(config, stochastic)
         else:
             _invalid_task_err(task)
     else:
