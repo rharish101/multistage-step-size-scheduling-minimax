@@ -20,6 +20,12 @@ def get_scheduler(optim: Optimizer, config: Config):
         )
     elif config.sched == "const":
         return LambdaLR(optim, lambda _: 1.0)
+    elif config.sched == "poly":
+        return LambdaLR(optim, lambda step: 1 / (1 + config.decay * step))
+    elif config.sched == "poly-sqrt":
+        return LambdaLR(
+            optim, lambda step: 1 / (1 + config.decay * math.sqrt(step))
+        )
     else:
         raise ValueError(f"Invalid scheduler: {config.sched}")
 
