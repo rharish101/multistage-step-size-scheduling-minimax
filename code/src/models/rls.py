@@ -181,10 +181,10 @@ class RLSLowConditionNum(RLSBase):
 class RLSHighConditionNum(RLSBase):
     """The robust least squares model with a high condition number."""
 
-    CONSTR_WT: Final = 1.5
-    RANK_FRACTION: Final = 0.95
-    EIGENVAL_MIN: Final = 0.2
-    EIGENVAL_MAX: Final = 1.8
+    CONSTR_WT: Final = 1.5  # The weight of the constraint term
+    RANK_FRACTION: Final = 0.95  # The rank as a fraction of dimensionality
+    EIGENVAL_MIN: Final = 0.2  # Minimum value of non-zero eigenvalues
+    EIGENVAL_MAX: Final = 1.8  # Maximum value of non-zero eigenvalues
 
     def __init__(self, config: Config, stochastic: bool):
         """Initialize and store everything needed for training.
