@@ -96,8 +96,8 @@ class RLSBase(ABC, LightningModule):
             "optimizer": y_optim,
             "lr_scheduler": {"scheduler": y_sched, "interval": "step"},
         }
-        # Train y first, then x
-        return y_config, x_config
+        # Train x first, then y
+        return x_config, y_config
 
     def training_step(
         self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
@@ -121,7 +121,7 @@ class RLSBase(ABC, LightningModule):
             with torch.no_grad():
                 self._log_rls_metrics(loss)
 
-        if optimizer_idx == 0:  # y update
+        if optimizer_idx == 1:  # y update
             return -loss
         else:  # x update
             return loss

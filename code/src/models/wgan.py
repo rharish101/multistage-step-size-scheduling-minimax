@@ -95,8 +95,8 @@ class WGAN(LightningModule):
             "optimizer": crit_optim,
             "lr_scheduler": {"scheduler": crit_sched, "interval": "step"},
         }
-        # Train the critic first, then the generator
-        return crit_config, gen_config
+        # Train the generator first, then the critic
+        return gen_config, crit_config
 
     def training_step(
         self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
@@ -110,7 +110,7 @@ class WGAN(LightningModule):
             with torch.no_grad():
                 self._log_gan_metrics(fake)
 
-        if optimizer_idx == 0:  # Critic update
+        if optimizer_idx == 1:  # Critic update
             critic_real = self.critic(real).reshape(-1)
             return (
                 -critic_real.mean()
