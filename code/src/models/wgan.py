@@ -106,23 +106,33 @@ class WGAN(LightningModule):
         fake = self.gen(batch)
         critic_fake = self.critic(fake).reshape(-1)
 
-        if batch_idx % self.trainer.log_every_n_steps == 0:
-            with torch.no_grad():
-                self._log_gan_metrics(fake)
-
         if optimizer_idx == 1:  # Critic update
             critic_real = self.critic(real).reshape(-1)
-            return (
+            loss = (
                 -critic_real.mean()
                 + critic_fake.mean()
                 + 0.001 * (self.critic.theta_1**2 + self.critic.theta_2**2)
             )
 
         else:  # Generator update
-            return -critic_fake.mean()
+            loss = -critic_fake.mean()
 
-    def _log_gan_metrics(self, fake: torch.Tensor) -> None:
-        """Log all metrics."""
+        if batch_idx % self.trainer.log_every_n_steps == 0:
+            with torch.no_grad():
+                self._log_gan_metrics(fake, loss, optimizer_idx)
+
+        return loss
+
+    def _log_gan_metrics(
+        self, fake: torch.Tensor, loss: torch.Tensor, optimizer_idx: int
+    ) -> None:
+        """Log all metrics.
+
+        Args:
+            fake: The output of the generator
+            loss: The loss that will be optimized
+            optimizer_idx: Whether this is the critic's or the generator's step
+        """
         gx_list = [
             p.grad.detach().reshape(-1)
             for p in self.gen.parameters()
@@ -140,6 +150,9 @@ class WGAN(LightningModule):
         if gy_list:
             gy = torch.cat(gy_list)
             self.log("grad_y", torch.linalg.norm(gy))
+
+        model_name = "critic" if optimizer_idx == 1 else "gen"
+        self.log(f"metrics/{model_name}_loss", loss)
 
         loss_hist = (
             torch.abs(fake.mean() - self.REAL_MEAN) ** 2
