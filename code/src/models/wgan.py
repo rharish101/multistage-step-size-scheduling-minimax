@@ -108,7 +108,7 @@ class WGAN(LightningModule):
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
             with torch.no_grad():
-                self.log_gan_metrics(batch_idx, fake)
+                self.log_gan_metrics(fake)
 
         if optimizer_idx == 0:  # Critic update
             critic_real = self.critic(real).reshape(-1)
@@ -121,7 +121,7 @@ class WGAN(LightningModule):
         else:  # Generator update
             return -critic_fake.mean()
 
-    def log_gan_metrics(self, global_step: int, fake: torch.Tensor) -> None:
+    def log_gan_metrics(self, fake: torch.Tensor) -> None:
         """Log all metrics."""
         gx_list = [
             p.grad.detach().reshape(-1)

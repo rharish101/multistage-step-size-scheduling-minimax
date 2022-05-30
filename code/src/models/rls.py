@@ -119,14 +119,14 @@ class RLSBase(ABC, LightningModule):
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
             with torch.no_grad():
-                self._log_rls_metrics(batch_idx)
+                self._log_rls_metrics()
 
         if optimizer_idx == 0:  # y update
             return -loss
         else:  # x update
             return loss
 
-    def _log_rls_metrics(self, global_step: int) -> None:
+    def _log_rls_metrics(self) -> None:
         """Log all metrics."""
         if self.x.grad is not None:
             gx = self.x.grad.detach().reshape(-1)
