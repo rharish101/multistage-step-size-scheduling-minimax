@@ -25,8 +25,8 @@ class Config:
 
     batch_size: int = 100
     sched: str = "step"
-    gen_lr: float = 1e-2
-    crit_lr: float = 1e-2
+    gen_lr: float = 1e-1
+    crit_lr: float = 5e-1
     decay: float = 2.0
     start_phase_len: int = 500
     total_steps: int = 20000
