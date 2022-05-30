@@ -119,14 +119,14 @@ class RLSBase(ABC, LightningModule):
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
             with torch.no_grad():
-                self._log_rls_metrics()
+                self._log_rls_metrics(loss)
 
         if optimizer_idx == 0:  # y update
             return -loss
         else:  # x update
             return loss
 
-    def _log_rls_metrics(self) -> None:
+    def _log_rls_metrics(self, loss: torch.Tensor) -> None:
         """Log all metrics."""
         if self.x.grad is not None:
             gx = self.x.grad.detach().reshape(-1)
@@ -140,10 +140,12 @@ class RLSBase(ABC, LightningModule):
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
         self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
 
+        self.log("metrics/loss", loss)
+
         x_dist = (self.x - self.x_star).squeeze()
         y_dist = (self.y - self.y_star).squeeze()
         dist = x_dist.dot(x_dist) + y_dist.dot(y_dist)
-        self.log("loss/distance", dist)
+        self.log("metrics/distance", dist)
 
         term_1 = self.A @ self.x - self.y
         term_2 = self.y - self.y_0
@@ -156,7 +158,7 @@ class RLSBase(ABC, LightningModule):
             self.constr_wt / (self.constr_wt - 1) * term_3.T @ self.M @ term_3
         )
         potential = 2 * g_x - self.g_star - f_xy
-        self.log("loss/potential", potential)
+        self.log("metrics/potential", potential)
 
 
 class RLSLowConditionNum(RLSBase):
