@@ -45,8 +45,8 @@ class RLSBase(ABC, LightningModule):
         self.num_examples = num_examples
         self.num_features = num_features
 
-        self.x = Parameter(torch.zeros(num_features, 1))
-        self.y = Parameter(torch.zeros(num_examples, 1))
+        self.x = Parameter(torch.randn(num_features, 1))
+        self.y = Parameter(torch.randn(num_examples, 1))
 
         self.A = Parameter(self._get_input_matrix(), requires_grad=False)
         self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
