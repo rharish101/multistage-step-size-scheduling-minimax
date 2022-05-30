@@ -1,5 +1,5 @@
 """Class definitions for toy WGAN models."""
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Final, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -58,6 +58,9 @@ class PLCritic(Module):
 class WGAN(LightningModule):
     """The WGAN model."""
 
+    REAL_MEAN: Final = 0.0  #: The mean of the "real" data
+    REAL_STDDEV: Final = 0.1  #: The standard deviation for the "real" data
+
     def __init__(self, config: Config, gen_type: str):
         """Initialize and store everything needed for training.
 
@@ -99,7 +102,7 @@ class WGAN(LightningModule):
         self, batch: torch.Tensor, batch_idx: int, optimizer_idx: int
     ) -> torch.Tensor:
         """Run one training step."""
-        real = self.config.real_mu + self.config.real_sigma * batch
+        real = self.REAL_MEAN + self.REAL_STDDEV * batch
         fake = self.gen(batch)
         critic_fake = self.critic(fake).reshape(-1)
 
@@ -139,8 +142,8 @@ class WGAN(LightningModule):
             self.log("grad_y", torch.linalg.norm(gy))
 
         loss_hist = (
-            torch.abs(fake.mean() - self.config.real_mu) ** 2
-            + torch.abs(fake.std() - self.config.real_sigma) ** 2
+            torch.abs(fake.mean() - self.REAL_MEAN) ** 2
+            + torch.abs(fake.std() - self.REAL_STDDEV) ** 2
         )
         self.log("loss_hist", loss_hist)
 

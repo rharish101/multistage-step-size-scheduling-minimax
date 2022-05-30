@@ -18,8 +18,6 @@ class Config:
         crit_lr: The maximum learning rate for the critic
         decay: The learning rate decay factor
         total_steps: The total steps for training the model
-        real_mu: The mean of the "real" data
-        real_sigma: The standard deviation for the "real" data
         seed: The global random seed (for reproducibility)
     """
 
@@ -30,8 +28,6 @@ class Config:
     decay: float = 2.0
     start_phase_len: int = 500
     total_steps: int = 20000
-    real_mu: float = 0.0
-    real_sigma: float = 0.1
     seed: int = 0
 
 
