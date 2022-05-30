@@ -125,7 +125,7 @@ class WGAN(LightningModule):
         """Log all metrics."""
         gx_list = [
             p.grad.detach().reshape(-1)
-            for p in self.critic.parameters()
+            for p in self.gen.parameters()
             if p.grad is not None
         ]
         if gx_list:
@@ -134,7 +134,7 @@ class WGAN(LightningModule):
 
         gy_list = [
             p.grad.detach().reshape(-1)
-            for p in self.gen.parameters()
+            for p in self.critic.parameters()
             if p.grad is not None
         ]
         if gy_list:
