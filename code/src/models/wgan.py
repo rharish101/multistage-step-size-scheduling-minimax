@@ -145,7 +145,7 @@ class WGAN(LightningModule):
             torch.abs(fake.mean() - self.REAL_MEAN) ** 2
             + torch.abs(fake.std() - self.REAL_STDDEV) ** 2
         )
-        self.log("loss_hist", loss_hist)
+        self.log("metrics/distance", loss_hist)
 
         crit_sched, gen_sched = self.lr_schedulers()
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
