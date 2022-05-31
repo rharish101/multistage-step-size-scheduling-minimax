@@ -4,61 +4,30 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
 
-import torch
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.loggers import TensorBoardLogger
-from torch.utils.data import DataLoader
-
 from src.config import load_config
-from src.data import StandardNormalDataset
-from src.models import AVAIL_TASKS, get_model
+from src.models import AVAIL_TASKS
+from src.train import train
 
 
 def main(args: Namespace) -> None:
     """Run the main function."""
-    config = load_config(args.config)
-    seed_everything(config.seed, workers=True)
-
     if args.run_name is None:
         run_name = datetime.now().astimezone().isoformat()
     else:
         run_name = args.run_name
-    logger = TensorBoardLogger(
-        args.log_dir, name=args.task, version=run_name, default_hp_metric=False
-    )
-    logger.log_hyperparams(vars(config))
 
-    model = get_model(args.task, config)
-
-    # Detect if we're using CPUs, because there's no AMP on CPUs
-    if args.num_gpus == 0 or (
-        args.num_gpus == -1 and not torch.cuda.is_available()
-    ):
-        precision = max(args.precision, 32)  # allow 64-bit precision
-    else:
-        precision = args.precision
-
-    dataloader = DataLoader(
-        StandardNormalDataset(config.batch_size),
-        batch_size=None,
+    config = load_config(args.config)
+    train(
+        args.task,
+        config,
+        num_gpus=args.num_gpus,
         num_workers=args.num_workers,
-        pin_memory=args.num_gpus != 0,
+        precision=args.precision,
+        log_steps=args.log_steps,
+        log_dir=args.log_dir,
+        expt_name=args.task,
+        run_name=run_name,
     )
-
-    trainer = Trainer(
-        # Critic and generator have separate steps
-        max_steps=config.total_steps * 2,
-        # Used to limit the progress bar
-        limit_train_batches=config.total_steps,
-        logger=logger,
-        log_every_n_steps=args.log_steps,
-        gpus=args.num_gpus,
-        auto_select_gpus=args.num_gpus != 0,
-        strategy="ddp",
-        precision=precision,
-        val_check_interval=1,
-    )
-    trainer.fit(model, train_dataloaders=dataloader)
 
 
 if __name__ == "__main__":
