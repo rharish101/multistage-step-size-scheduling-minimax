@@ -120,11 +120,32 @@ class WGAN(LightningModule):
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
             with torch.no_grad():
-                self._log_gan_metrics(fake, loss, optimizer_idx)
+                self._log_gan_train_metrics(fake, loss, optimizer_idx)
 
         return loss
 
-    def _log_gan_metrics(
+    def validation_step(
+        self, batch: torch.Tensor, batch_idx: int
+    ) -> torch.Tensor:
+        """Run one validation step."""
+        real = self.REAL_MEAN + self.REAL_STDDEV * batch
+        fake = self.gen(batch)
+        critic_fake = self.critic(fake).reshape(-1)
+
+        # Calculate the critic loss, because it's the negative Wasserstein
+        # distance, whereas the generator loss is just one term
+        critic_real = self.critic(real).reshape(-1)
+        crit_loss = (
+            -critic_real.mean()
+            + critic_fake.mean()
+            + self.REG_WT
+            * (self.critic.theta_1**2 + self.critic.theta_2**2)
+        )
+
+        # Loss being logged is the critic loss
+        self._log_gan_metrics(fake, crit_loss, optimizer_idx=1)
+
+    def _log_gan_train_metrics(
         self, fake: torch.Tensor, loss: torch.Tensor, optimizer_idx: int
     ) -> None:
         """Log all metrics.
@@ -152,6 +173,15 @@ class WGAN(LightningModule):
             gy = torch.cat(gy_list)
             self.log("grad_y", torch.linalg.norm(gy))
 
+        crit_sched, gen_sched = self.lr_schedulers()
+        self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
+        self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
+
+        self._log_gan_metrics(fake, loss, optimizer_idx)
+
+    def _log_gan_metrics(
+        self, fake: torch.Tensor, loss: torch.Tensor, optimizer_idx: int
+    ) -> None:
         model_name = "critic" if optimizer_idx == 1 else "gen"
         self.log(f"metrics/{model_name}_loss", loss)
 
@@ -160,7 +190,3 @@ class WGAN(LightningModule):
             + torch.abs(fake.std() - self.REAL_STDDEV) ** 2
         )
         self.log("metrics/distance", distance)
-
-        crit_sched, gen_sched = self.lr_schedulers()
-        self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
-        self.log("learning_rate/critic", crit_sched.get_last_lr()[0])

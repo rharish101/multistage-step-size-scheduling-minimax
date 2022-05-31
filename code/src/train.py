@@ -1,6 +1,6 @@
 """The training function for the models."""
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 import torch
 from pytorch_lightning import Trainer, seed_everything
@@ -8,7 +8,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from .config import Config
-from .data import StandardNormalDataset
+from .data import FirstItemDataset, StandardNormalDataset
 from .models import get_model
 
 
@@ -22,7 +22,7 @@ def train(
     log_dir: Path,
     expt_name: Optional[str] = None,
     run_name: Optional[str] = None,
-) -> None:
+) -> Dict[str, float]:
     """Train a model for the given task.
 
     Args:
@@ -44,8 +44,15 @@ def train(
     logger.log_hyperparams(vars(config))
 
     model = get_model(task, config)
-    dataloader = DataLoader(
+
+    train_dataloader = DataLoader(
         StandardNormalDataset(config.batch_size),
+        batch_size=None,
+        num_workers=num_workers,
+        pin_memory=num_gpus != 0,
+    )
+    val_dataloader = DataLoader(
+        FirstItemDataset(StandardNormalDataset(config.batch_size)),
         batch_size=None,
         num_workers=num_workers,
         pin_memory=num_gpus != 0,
@@ -68,4 +75,7 @@ def train(
         precision=precision,
         val_check_interval=1,
     )
-    trainer.fit(model, train_dataloaders=dataloader)
+    trainer.fit(model, train_dataloaders=train_dataloader)
+
+    metrics = trainer.validate(model, dataloaders=val_dataloader)[0]
+    return metrics

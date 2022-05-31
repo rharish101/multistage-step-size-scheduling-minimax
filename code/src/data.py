@@ -1,8 +1,26 @@
 """Dataloaders for the GAN."""
-from typing import Iterable
+from typing import Iterable, TypeVar
 
 import torch
-from torch.utils.data import IterableDataset
+from torch.utils.data import Dataset, IterableDataset
+
+T = TypeVar("T")
+
+
+class FirstItemDataset(Dataset[T]):
+    """Wrapper for a dataset that returns only the first item."""
+
+    def __init__(self, dataset: Dataset[T]):
+        """Store the wrapped dataset."""
+        self.dataset = dataset
+
+    def __getitem__(self, idx: int) -> T:
+        """Return the first item of the wrapped dataset."""
+        return next(iter(self.dataset))
+
+    def __len__(self) -> int:
+        """Return the length."""
+        return 1
 
 
 class StandardNormalDataset(IterableDataset):

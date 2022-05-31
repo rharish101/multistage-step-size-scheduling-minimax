@@ -119,15 +119,25 @@ class RLSBase(ABC, LightningModule):
 
         if batch_idx % self.trainer.log_every_n_steps == 0:
             with torch.no_grad():
-                self._log_rls_metrics(loss)
+                self._log_rls_train_metrics(loss)
 
         if optimizer_idx == 1:  # y update
             return -loss
         else:  # x update
             return loss
 
-    def _log_rls_metrics(self, loss: torch.Tensor) -> None:
-        """Log all metrics."""
+    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:
+        """Run one validation step."""
+        term_1 = self.A @ self.x - self.y
+        term_2 = self.y - self.y_0
+        loss = (
+            term_1.T @ self.M @ term_1
+            - self.constr_wt * term_2.T @ self.M @ term_2
+        )
+        self._log_rls_metrics(loss)
+
+    def _log_rls_train_metrics(self, loss: torch.Tensor) -> None:
+        """Log metrics, including training-specific ones."""
         if self.x.grad is not None:
             gx = self.x.grad.detach().reshape(-1)
             self.log("grad_x", torch.linalg.norm(gx))
@@ -140,6 +150,10 @@ class RLSBase(ABC, LightningModule):
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
         self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
 
+        self._log_rls_metrics(loss)
+
+    def _log_rls_metrics(self, loss: torch.Tensor) -> None:
+        """Log general metrics."""
         self.log("metrics/loss", loss)
 
         x_dist = (self.x - self.x_star).squeeze()
