@@ -1,10 +1,16 @@
 """Class definitions for custom learning rate schedulers."""
 import math
+from typing import Any, Dict, Final
 
+from hyperopt import hp
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR, MultiStepLR, StepLR
 
 from .config import Config
+
+# Bounds for learning rate tuning
+_MIN_LR: Final = math.log(1e-6)
+_MAX_LR: Final = math.log(1e-2)
 
 
 def get_scheduler(optim: Optimizer, config: Config):
@@ -71,3 +77,11 @@ class VariablePhaseStepDecay(MultiStepLR):
             phase_sizes.append(phase_sizes[-1] + curr_phase_len)
 
         super().__init__(optim, milestones=phase_sizes, gamma=1 / decay)
+
+
+def get_hparam_space(config: Config) -> Dict[str, Any]:
+    """Get the hyper-param tuning space for the given config."""
+    return {
+        "gen_lr": hp.loguniform("gen_lr", _MIN_LR, _MAX_LR),
+        "crit_lr": hp.loguniform("crit_lr", _MIN_LR, _MAX_LR),
+    }
