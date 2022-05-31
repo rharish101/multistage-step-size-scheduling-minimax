@@ -58,8 +58,9 @@ class PLCritic(Module):
 class WGAN(LightningModule):
     """The WGAN model."""
 
-    REAL_MEAN: Final = 0.0  #: The mean of the "real" data
-    REAL_STDDEV: Final = 0.1  #: The standard deviation for the "real" data
+    REAL_MEAN: Final = 0.0  # The mean of the "real" data
+    REAL_STDDEV: Final = 0.1  # The standard deviation for the "real" data
+    REG_WT: Final = 0.001  # The L2 regularization weight
 
     def __init__(self, config: Config, gen_type: str):
         """Initialize and store everything needed for training.
@@ -111,9 +112,9 @@ class WGAN(LightningModule):
             loss = (
                 -critic_real.mean()
                 + critic_fake.mean()
-                + 0.001 * (self.critic.theta_1**2 + self.critic.theta_2**2)
+                + self.REG_WT
+                * (self.critic.theta_1**2 + self.critic.theta_2**2)
             )
-
         else:  # Generator update
             loss = -critic_fake.mean()
 
@@ -154,11 +155,11 @@ class WGAN(LightningModule):
         model_name = "critic" if optimizer_idx == 1 else "gen"
         self.log(f"metrics/{model_name}_loss", loss)
 
-        loss_hist = (
+        distance = (
             torch.abs(fake.mean() - self.REAL_MEAN) ** 2
             + torch.abs(fake.std() - self.REAL_STDDEV) ** 2
         )
-        self.log("metrics/distance", loss_hist)
+        self.log("metrics/distance", distance)
 
         crit_sched, gen_sched = self.lr_schedulers()
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
