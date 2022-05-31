@@ -1,4 +1,6 @@
 """Dataloaders for the GAN."""
+from typing import Iterable
+
 import torch
 from torch.utils.data import IterableDataset
 
@@ -14,7 +16,7 @@ class StandardNormalDataset(IterableDataset):
         """
         self.batch_size = batch_size
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[torch.Tensor]:
         """Generate batched samples."""
         while True:
             yield torch.randn(self.batch_size, 1)
