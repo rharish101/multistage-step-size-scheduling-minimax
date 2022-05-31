@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Train a GAN model."""
+"""Train a model for the requested task."""
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
@@ -63,7 +63,7 @@ def main(args: Namespace) -> None:
 
 if __name__ == "__main__":
     parser = ArgumentParser(
-        description="Train a GAN model",
+        description="Train a model for the requested task",
         formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -108,11 +108,11 @@ if __name__ == "__main__":
         "--log-steps",
         type=int,
         default=50,
-        help="Step interval (within an epoch) for logging training metrics",
+        help="Step interval for logging training metrics",
     )
     parser.add_argument(
         "--run-name",
         type=str,
-        help="The name for this run (None to use a timestamp)",
+        help="The name for this training run (None to use a timestamp)",
     )
     main(parser.parse_args())
