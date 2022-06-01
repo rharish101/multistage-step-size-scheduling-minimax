@@ -110,20 +110,24 @@ def tune(
 
     # To skip saving the pickle file for previously-completed iterations
     evals_done = len(trials.results)
-    for tuning_iter in range(evals_done, tuning_steps):
-        fmin(
-            lambda args: objective_wrapper(tuning_iter, args),
-            space,
-            algo=tpe.suggest,
-            trials=trials,
-            # We need only one iteration, and we've already finished
-            # `tuning_iter` iterations
-            max_evals=tuning_iter + 1,
-            show_progressbar=False,
-            rstate=rng,
-        )
-        with open(trials_path, "wb") as trials_writer:
-            pickle.dump(_Progress(trials, rng), trials_writer)
+
+    try:
+        for tuning_iter in range(evals_done, tuning_steps):
+            fmin(
+                lambda args: objective_wrapper(tuning_iter, args),
+                space,
+                algo=tpe.suggest,
+                trials=trials,
+                # We need only one iteration, and we've already finished
+                # `tuning_iter` iterations
+                max_evals=tuning_iter + 1,
+                show_progressbar=False,
+                rstate=rng,
+            )
+            with open(trials_path, "wb") as trials_writer:
+                pickle.dump(_Progress(trials, rng), trials_writer)
+    except KeyboardInterrupt:
+        print("Caught KeyboardInterrupt; ending hyper-param search")
 
     best_hparams = space_eval(space, trials.argmin)
     best_config = update_config(config, best_hparams)

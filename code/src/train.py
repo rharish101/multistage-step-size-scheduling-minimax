@@ -77,5 +77,9 @@ def train(
     )
     trainer.fit(model, train_dataloaders=train_dataloader)
 
+    # Pytorch Lightning catches KeyboardInterrupt, but doesn't raise it
+    if trainer.interrupted:
+        raise KeyboardInterrupt
+
     metrics = trainer.validate(model, dataloaders=val_dataloader)[0]
     return metrics
