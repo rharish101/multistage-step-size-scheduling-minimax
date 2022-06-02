@@ -146,7 +146,7 @@ class RLSBase(ABC, LightningModule):
             gy = self.y.grad.detach().reshape(-1)
             self.log("grad_y", torch.linalg.norm(gy))
 
-        crit_sched, gen_sched = self.lr_schedulers()
+        gen_sched, crit_sched = self.lr_schedulers()
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
         self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
 
