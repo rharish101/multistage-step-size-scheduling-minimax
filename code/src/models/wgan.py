@@ -3,12 +3,12 @@ from typing import Any, Dict, Final, Tuple
 
 import torch
 import torch.nn.functional as F
-from pytorch_lightning import LightningModule
 from torch.nn import Linear, Module, Parameter
 from torch.optim import SGD
 
 from ..config import Config
 from ..schedulers import get_scheduler
+from .base import BaseModel
 
 
 class LinearGenerator(Module):
@@ -55,7 +55,7 @@ class PLCritic(Module):
         return self.theta_1 * x + self.theta_2 * x**2
 
 
-class WGAN(LightningModule):
+class WGAN(BaseModel):
     """The WGAN model."""
 
     REAL_MEAN: Final = 0.0  # The mean of the "real" data

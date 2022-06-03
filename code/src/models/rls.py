@@ -4,16 +4,16 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Final, Tuple
 
 import torch
-from pytorch_lightning import LightningModule
 from torch.distributions import MultivariateNormal
 from torch.nn import Parameter
 from torch.optim import SGD
 
 from ..config import Config
 from ..schedulers import get_scheduler
+from .base import BaseModel
 
 
-class RLSBase(ABC, LightningModule):
+class RLSBase(ABC, BaseModel):
     """Base class for a robust least squares model with a soft constraint.
 
     Adapted from: http://arxiv.org/abs/2002.09621
