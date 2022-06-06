@@ -1,4 +1,5 @@
 """Utilities for tuning hyper-parameters."""
+import math
 import pickle
 from dataclasses import dataclass
 from pathlib import Path
@@ -6,11 +7,10 @@ from typing import Any, Dict, Final, Optional
 
 import numpy as np
 import yaml
-from hyperopt import STATUS_FAIL, STATUS_OK, Trials, fmin, space_eval, tpe
+from hyperopt import STATUS_FAIL, STATUS_OK, Trials, fmin, hp, space_eval, tpe
 from numpy.random import Generator, default_rng
 
 from .config import Config, update_config
-from .schedulers import get_hparam_space
 from .train import train
 
 # Where to save the best config after tuning
@@ -19,6 +19,10 @@ BEST_CONFIG_FILE: Final = "best-hparams.yaml"
 # Where to save the pickle file for hyperopt's progress
 TRIALS_FILE: Final = "trials.pkl"
 
+# Bounds for learning rate tuning
+_MIN_LR: Final = math.log(1e-6)
+_MAX_LR: Final = math.log(1e-2)
+
 
 @dataclass
 class _Progress:
@@ -26,6 +30,14 @@ class _Progress:
 
     trials: Trials
     rng: Generator
+
+
+def _get_hparam_space(config: Config) -> Dict[str, Any]:
+    """Get the hyper-param tuning space for the given config."""
+    return {
+        "x_lr": hp.loguniform("x_lr", _MIN_LR, _MAX_LR),
+        "y_lr": hp.loguniform("y_lr", _MIN_LR, _MAX_LR),
+    }
 
 
 def tune(
@@ -106,7 +118,7 @@ def tune(
         trials = progress.trials
         rng = progress.rng
 
-    space = get_hparam_space(config)
+    space = _get_hparam_space(config)
 
     # To skip saving the pickle file for previously-completed iterations
     evals_done = len(trials.results)
