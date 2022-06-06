@@ -14,8 +14,8 @@ class Config:
         batch_size: The batch size for training
         sched: The choice of scheduler (must be one of: const, step, var, poly,
             poly-sqrt)
-        gen_lr: The maximum learning rate for the generator
-        crit_lr: The maximum learning rate for the critic
+        x_lr: The maximum learning rate for the generator
+        y_lr: The maximum learning rate for the critic
         decay: The learning rate decay factor
         total_steps: The total steps for training the model
         seed: The global random seed (for reproducibility)
@@ -23,8 +23,8 @@ class Config:
 
     batch_size: int = 100
     sched: str = "step"
-    gen_lr: float = 1e-1
-    crit_lr: float = 5e-1
+    x_lr: float = 1e-1
+    y_lr: float = 5e-1
     decay: float = 2.0
     start_phase_len: int = 500
     total_steps: int = 20000

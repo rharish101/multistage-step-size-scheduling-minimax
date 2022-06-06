@@ -82,8 +82,8 @@ class WGAN(BaseModel):
 
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
-        gen_optim = SGD(self.gen.parameters(), lr=self.config.gen_lr)
-        crit_optim = SGD(self.critic.parameters(), lr=self.config.crit_lr)
+        gen_optim = SGD(self.gen.parameters(), lr=self.config.x_lr)
+        crit_optim = SGD(self.critic.parameters(), lr=self.config.y_lr)
 
         gen_sched = get_scheduler(gen_optim, self.config)
         crit_sched = get_scheduler(crit_optim, self.config)

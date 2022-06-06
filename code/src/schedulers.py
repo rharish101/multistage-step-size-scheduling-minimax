@@ -82,6 +82,6 @@ class VariablePhaseStepDecay(MultiStepLR):
 def get_hparam_space(config: Config) -> Dict[str, Any]:
     """Get the hyper-param tuning space for the given config."""
     return {
-        "gen_lr": hp.loguniform("gen_lr", _MIN_LR, _MAX_LR),
-        "crit_lr": hp.loguniform("crit_lr", _MIN_LR, _MAX_LR),
+        "x_lr": hp.loguniform("x_lr", _MIN_LR, _MAX_LR),
+        "y_lr": hp.loguniform("y_lr", _MIN_LR, _MAX_LR),
     }

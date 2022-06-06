@@ -82,8 +82,8 @@ class RLSBase(ABC, BaseModel):
 
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
-        x_optim = SGD([self.x], lr=self.config.gen_lr)
-        y_optim = SGD([self.y], lr=self.config.crit_lr)
+        x_optim = SGD([self.x], lr=self.config.x_lr)
+        y_optim = SGD([self.y], lr=self.config.y_lr)
 
         x_sched = get_scheduler(x_optim, self.config)
         y_sched = get_scheduler(y_optim, self.config)
