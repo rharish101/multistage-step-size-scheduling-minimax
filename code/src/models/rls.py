@@ -132,13 +132,12 @@ class RLSBase(ABC, BaseModel):
 
     def _log_rls_train_metrics(self) -> None:
         """Log metrics, including training-specific ones."""
-        if self.x.grad is not None:
-            gx = self.x.grad.detach().reshape(-1)
-            self.log("grad_x", torch.linalg.norm(gx))
+        term_1 = self.A @ self.x - self.y
+        gx = 2 * self.A.T @ self.M @ term_1
+        self.log("grad_x", torch.linalg.norm(gx))
 
-        if self.y.grad is not None:
-            gy = self.y.grad.detach().reshape(-1)
-            self.log("grad_y", torch.linalg.norm(gy))
+        gy = 2 * self.M @ (self.constr_wt * (self.y_0 - self.y) - term_1)
+        self.log("grad_y", torch.linalg.norm(gy))
 
         gen_sched, crit_sched = self.lr_schedulers()
         self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
