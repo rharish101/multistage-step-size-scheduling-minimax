@@ -1,4 +1,4 @@
-"""Dataloaders for the GAN."""
+"""Datasets for the toy WGAN."""
 from typing import Iterable, TypeVar
 
 import torch

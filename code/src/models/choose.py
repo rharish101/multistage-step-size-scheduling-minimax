@@ -35,6 +35,9 @@ def get_model(task: str, config: Config) -> LightningModule:
     Args:
         task: The string specifying the optimization task
         config: The hyper-param config
+
+    Returns:
+        The model for the requested task
     """
     desc = task.split("/")
     if desc[0] == "wgan":
