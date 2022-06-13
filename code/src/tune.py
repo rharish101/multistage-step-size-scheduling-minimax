@@ -9,6 +9,7 @@ import numpy as np
 import yaml
 from hyperopt import STATUS_FAIL, STATUS_OK, Trials, fmin, hp, space_eval, tpe
 from numpy.random import Generator, default_rng
+from pytorch_lightning import seed_everything
 
 from .config import Config, update_config
 from .train import train
@@ -91,6 +92,7 @@ def tune(
 
     def objective(tuning_iter: int, hparams: Dict[str, Any]) -> float:
         new_config = update_config(config, hparams)
+        seed_everything(config.seed, workers=True)
         metrics = train(
             task,
             new_config,

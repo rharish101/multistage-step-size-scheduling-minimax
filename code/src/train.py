@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import torch
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 
@@ -36,8 +36,6 @@ def train(
         expt_name: The name for this class of experiments
         run_name: The name for this training run
     """
-    seed_everything(config.seed, workers=True)
-
     logger = TensorBoardLogger(
         log_dir, name=expt_name, version=run_name, default_hp_metric=False
     )

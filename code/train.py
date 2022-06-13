@@ -4,6 +4,8 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
 
+from pytorch_lightning import seed_everything
+
 from src.config import load_config
 from src.models import AVAIL_TASKS
 from src.train import train
@@ -17,17 +19,22 @@ def main(args: Namespace) -> None:
         run_name = args.run_name
 
     config = load_config(args.config)
-    train(
-        args.task,
-        config,
-        num_gpus=args.num_gpus,
-        num_workers=args.num_workers,
-        precision=args.precision,
-        log_steps=args.log_steps,
-        log_dir=args.log_dir,
-        expt_name=args.task,
-        run_name=run_name,
-    )
+
+    for expt_num in range(args.num_expts):
+        seed_everything(config.seed + expt_num, workers=True)
+        train(
+            args.task,
+            config,
+            num_gpus=args.num_gpus,
+            num_workers=args.num_workers,
+            precision=args.precision,
+            log_steps=args.log_steps,
+            log_dir=args.log_dir,
+            expt_name=args.task,
+            run_name=f"{run_name}/expt-{expt_num}"
+            if args.num_expts != 1
+            else run_name,
+        )
 
 
 if __name__ == "__main__":
@@ -83,5 +90,11 @@ if __name__ == "__main__":
         "--run-name",
         type=str,
         help="The name for this training run (None to use a timestamp)",
+    )
+    parser.add_argument(
+        "--num-expts",
+        type=int,
+        default=1,
+        help="The total number of experiments to run",
     )
     main(parser.parse_args())
