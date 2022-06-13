@@ -79,7 +79,15 @@ def tune(
     # log_dir/task/run_name/eval-{num}/
     # The trials pickle should be at: log_dir/task/run_name/trials.pkl
     if trials_path is not None:
-        run_name = trials_path.parent.name
+        trials_path = trials_path.resolve()
+        log_dir = log_dir.resolve()
+        try:
+            run_name = str(trials_path.parent.relative_to(log_dir / task))
+        except ValueError:
+            raise ValueError(
+                f'Invalid trials path "{trials_path}"; it should be a '
+                f'sub-directory of "{log_dir / task}"'
+            )
 
     def objective(tuning_iter: int, hparams: Dict[str, Any]) -> float:
         new_config = update_config(config, hparams)
