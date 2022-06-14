@@ -4,9 +4,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
 
-from pytorch_lightning import seed_everything
-
-from src.config import load_config
+from src.config import load_config, update_config
 from src.models import AVAIL_TASKS
 from src.train import train
 
@@ -21,10 +19,10 @@ def main(args: Namespace) -> None:
     config = load_config(args.config)
 
     for expt_num in range(args.num_expts):
-        seed_everything(config.seed + expt_num, workers=True)
+        expt_config = update_config(config, {"seed": config.seed + expt_num})
         train(
             args.task,
-            config,
+            expt_config,
             num_gpus=args.num_gpus,
             num_workers=args.num_workers,
             precision=args.precision,
