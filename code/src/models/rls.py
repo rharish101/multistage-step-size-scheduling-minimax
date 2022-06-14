@@ -134,14 +134,14 @@ class RLSBase(ABC, BaseModel):
         """Log metrics, including training-specific ones."""
         term_1 = self.A @ self.x - self.y
         gx = 2 * self.A.T @ self.M @ term_1
-        self.log("grad_x", torch.linalg.norm(gx))
+        self.log("gradients/x", torch.linalg.norm(gx))
 
         gy = 2 * self.M @ (self.constr_wt * (self.y_0 - self.y) - term_1)
-        self.log("grad_y", torch.linalg.norm(gy))
+        self.log("gradients/y", torch.linalg.norm(gy))
 
         gen_sched, crit_sched = self.lr_schedulers()
-        self.log("learning_rate/generator", gen_sched.get_last_lr()[0])
-        self.log("learning_rate/critic", crit_sched.get_last_lr()[0])
+        self.log("learning_rate/x", gen_sched.get_last_lr()[0])
+        self.log("learning_rate/y", crit_sched.get_last_lr()[0])
 
         self._log_rls_metrics()
 
