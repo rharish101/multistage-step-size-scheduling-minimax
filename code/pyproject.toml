@@ -12,6 +12,8 @@ pytorch-lightning = "^1.6.3"
 PyYAML = "^6.0"
 hyperopt = "^0.2.7"
 numpy = "^1.22.4"
+tbparse = "^0.0.6"
+seaborn = "^0.11.2"
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.19.0"

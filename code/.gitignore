@@ -8,3 +8,4 @@ __pycache__/
 # Project-specific stuff
 logs/
 configs/
+plots/
