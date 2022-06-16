@@ -14,7 +14,10 @@ from src.config import load_config
 sns.set()
 
 _TAGS_TO_PLOT: Final = ("metrics/distance", "metrics/potential")
-_SCHED_COL: Final = "Scheduler"  # Used for the legend title
+_MODE_TO_COL: Final = {
+    "sched": "Scheduler",
+    "decay": "Decay",
+}  # Used for the legend title
 _SCHED_TO_NAME: Final = {
     "const": "Constant",
     "step": "Step-decay",
@@ -32,14 +35,16 @@ def main(args: Namespace) -> None:
     for path in sorted(args.log_dir):
         path_data = SummaryReader(path).scalars
         config = load_config(path / "hparams.yaml")
-        path_data[_SCHED_COL] = _SCHED_TO_NAME[config.sched]
+        path_data[_MODE_TO_COL[args.mode]] = getattr(config, args.mode)
         data = pd.concat([data, path_data], ignore_index=True)
 
     assert data is not None
 
     for tag in _TAGS_TO_PLOT:
         tag_data = data[data["tag"] == tag]
-        axes = sns.lineplot(data=tag_data, x="step", y="value", hue=_SCHED_COL)
+        axes = sns.lineplot(
+            data=tag_data, x="step", y="value", hue=_MODE_TO_COL[args.mode]
+        )
 
         tag_trimmed = tag.split("/")[-1]
         axes.set_xlabel("Steps")
@@ -56,6 +61,11 @@ def main(args: Namespace) -> None:
 if __name__ == "__main__":
     parser = ArgumentParser(
         description="Generate plots for comparing schedulers"
+    )
+    parser.add_argument(
+        "mode",
+        choices=["sched", "decay"],
+        help="The hyper-parameter to use for grouping",
     )
     parser.add_argument(
         "log_dir",
