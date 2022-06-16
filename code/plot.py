@@ -18,7 +18,7 @@ _SCHED_COL: Final = "Scheduler"  # Used for the legend title
 _SCHED_TO_NAME: Final = {
     "const": "Constant",
     "step": "Step-decay",
-    "var": "Variable-phase",
+    "var": "Increasing-phase",
     "poly": "Poly-linear",
     "poly-sqrt": "Poly-sqrt",
 }  # Used for naming schedulers in the legend
