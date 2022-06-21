@@ -2,7 +2,7 @@
 """Generate plots for comparing schedulers."""
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
-from typing import Final, Optional
+from typing import Any, Final, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -35,7 +35,13 @@ def main(args: Namespace) -> None:
     for path in sorted(args.log_dir):
         path_data = SummaryReader(path).scalars
         config = load_config(path / "hparams.yaml")
-        path_data[_MODE_TO_COL[args.mode]] = getattr(config, args.mode)
+
+        if args.mode == "sched":
+            name: Any = _SCHED_TO_NAME[config.sched]
+        elif args.mode == "decay":
+            name = config.decay
+        path_data[_MODE_TO_COL[args.mode]] = name
+
         data = pd.concat([data, path_data], ignore_index=True)
 
     assert data is not None
