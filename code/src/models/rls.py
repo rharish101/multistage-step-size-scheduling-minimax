@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Final, Tuple
 
 import torch
+from pytorch_lightning.utilities.seed import isolate_rng, seed_everything
 from torch.distributions import MultivariateNormal
 from torch.nn import Parameter
 from torch.optim import SGD
@@ -12,6 +13,7 @@ from ..config import Config
 from ..schedulers import get_scheduler
 from .base import BaseModel
 
+DATA_SEED: Final = 0  # The seed for the "dataset"
 NUM_EXAMPLES: Final = 1000  # The number of examples in the input matrix
 NUM_FEATURES: Final = 500  # The number of features in the input matrix
 NOISE_STDDEV: Final = 0.1  # The standard deviation of the added noise
@@ -41,11 +43,16 @@ class RLSBase(ABC, BaseModel):
         self.x = Parameter(torch.randn(NUM_FEATURES, 1))
         self.y = Parameter(torch.randn(NUM_EXAMPLES, 1))
 
-        self.A = Parameter(self._get_input_matrix(), requires_grad=False)
-        self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
+        # Seed the "dataset" separately
+        with isolate_rng():
+            seed_everything(DATA_SEED)
 
-        x_orig = torch.randn(NUM_FEATURES, 1)
-        epsilon = torch.randn(NUM_EXAMPLES, 1) * NOISE_STDDEV
+            self.A = Parameter(self._get_input_matrix(), requires_grad=False)
+            self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
+
+            x_orig = torch.randn(NUM_FEATURES, 1)
+            epsilon = torch.randn(NUM_EXAMPLES, 1) * NOISE_STDDEV
+
         self.y_0 = Parameter(self.A @ x_orig + epsilon, requires_grad=False)
 
         term_1 = torch.linalg.pinv(self.A.T @ self.M @ self.A)
