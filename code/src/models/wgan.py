@@ -30,11 +30,13 @@ class LinearGenerator(Module):
 class NNGenerator(Module):
     """A non-linear neural-net-based generator."""
 
+    HIDDEN_SIZE: Final = 5
+
     def __init__(self) -> None:
         """Initialize the model weights."""
         super().__init__()
-        self.fc_1 = Linear(1, 5)
-        self.fc_2 = Linear(5, 1)
+        self.fc_1 = Linear(1, self.HIDDEN_SIZE)
+        self.fc_2 = Linear(self.HIDDEN_SIZE, 1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Get the model output."""
