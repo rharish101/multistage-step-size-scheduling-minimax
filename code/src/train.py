@@ -3,8 +3,9 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import torch
-from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.utilities.seed import isolate_rng, seed_everything
 from torch.utils.data import DataLoader
 
 from .config import Config
@@ -36,6 +37,7 @@ def train(
         expt_name: The name for this class of experiments
         run_name: The name for this training run
     """
+    # Seed everything, just in case we missed a step using randomness somewhere
     seed_everything(config.seed, workers=True)
 
     logger = TensorBoardLogger(
@@ -43,8 +45,14 @@ def train(
     )
     logger.log_hyperparams(vars(config))
 
-    model = get_model(task, config)
+    # PyTorch layers don't accept a generator argument, so isolate the global
+    # RNG
+    with isolate_rng():
+        seed_everything(config.seed)
+        model = get_model(task, config)
 
+    # These should be using RNGs within, so there's no need to isolate the
+    # global RNG
     train_dataset, val_dataset = get_datasets(task, config)
     train_dataloader = DataLoader(
         train_dataset,

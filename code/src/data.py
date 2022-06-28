@@ -2,7 +2,7 @@
 from typing import Iterable, Tuple, TypeVar
 
 import torch
-from torch.utils.data import Dataset, IterableDataset
+from torch.utils.data import Dataset, IterableDataset, get_worker_info
 
 from .config import Config
 from .models.rls import NUM_EXAMPLES
@@ -65,8 +65,8 @@ class FirstItemDataset(Dataset[T]):
         return 1
 
 
-class StandardNormalDataset(IterableDataset):
-    """Returns samples from the standard normal distribution."""
+class RNGDatasetBase(IterableDataset[T]):
+    """Base class for a dataset that yields by sampling with an RNG."""
 
     def __init__(self, config: Config):
         """Store params used during sampling.
@@ -76,13 +76,30 @@ class StandardNormalDataset(IterableDataset):
         """
         self.config = config
 
+    def _get_rng(self) -> torch.Generator:
+        """Get an RNG seeded using the initial seed and the worker ID.
+
+        The initial seed will be combined with a worker-specific ID during
+        multi-process data sampling.
+
+        This is meant to be run during data loading, not during initialization.
+        """
+        worker_info = get_worker_info()
+        worker_id = 0 if worker_info is None else worker_info.id
+        return torch.Generator().manual_seed(self.config.seed + worker_id)
+
+
+class StandardNormalDataset(RNGDatasetBase[torch.Tensor]):
+    """Returns samples from the standard normal distribution."""
+
     def __iter__(self) -> Iterable[torch.Tensor]:
         """Generate batched samples."""
+        rng = self._get_rng()
         while True:
-            yield torch.randn(self.config.batch_size, 1)
+            yield torch.randn(self.config.batch_size, 1, generator=rng)
 
 
-class RLSDataset(IterableDataset):
+class RLSDataset(RNGDatasetBase[torch.Tensor]):
     """Returns indices used for sampling "rows" from the RLS dataset.
 
     The actual dataset should be within the RLS model instance.
@@ -95,13 +112,16 @@ class RLSDataset(IterableDataset):
             config: The hyper-param config
             stochastic: Whether to sample mini-batches
         """
-        self.config = config
+        super().__init__(config)
         self.stochastic = stochastic
 
     def __iter__(self) -> Iterable[torch.Tensor]:
         """Generate batched indices."""
+        rng = self._get_rng()
         while True:
             if self.stochastic:
-                yield torch.randperm(NUM_EXAMPLES)[: self.config.batch_size]
+                yield torch.randperm(NUM_EXAMPLES, generator=rng)[
+                    : self.config.batch_size
+                ]
             else:
                 yield torch.arange(NUM_EXAMPLES)
