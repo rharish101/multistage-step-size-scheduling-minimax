@@ -8,7 +8,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch.utils.data import DataLoader
 
 from .config import Config
-from .data import FirstItemDataset, StandardNormalDataset
+from .data import get_datasets
 from .models import get_model
 
 
@@ -45,14 +45,15 @@ def train(
 
     model = get_model(task, config)
 
+    train_dataset, val_dataset = get_datasets(task, config)
     train_dataloader = DataLoader(
-        StandardNormalDataset(config.batch_size),
+        train_dataset,
         batch_size=None,
         num_workers=num_workers,
         pin_memory=num_gpus != 0,
     )
     val_dataloader = DataLoader(
-        FirstItemDataset(StandardNormalDataset(config.batch_size)),
+        val_dataset,
         batch_size=None,
         num_workers=num_workers,
         pin_memory=num_gpus != 0,

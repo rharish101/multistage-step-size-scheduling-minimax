@@ -5,8 +5,8 @@ from datetime import datetime
 from pathlib import Path
 
 from src.config import load_config
-from src.models import AVAIL_TASKS
 from src.tune import tune
+from src.utils import AVAIL_TASKS
 
 
 def main(args: Namespace) -> None:

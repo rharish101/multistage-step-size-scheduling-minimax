@@ -12,6 +12,10 @@ from ..config import Config
 from ..schedulers import get_scheduler
 from .base import BaseModel
 
+NUM_EXAMPLES: Final = 1000  # The number of examples in the input matrix
+NUM_FEATURES: Final = 500  # The number of features in the input matrix
+NOISE_STDDEV: Final = 0.1  # The standard deviation of the added noise
+
 
 class RLSBase(ABC, BaseModel):
     """Base class for a robust least squares model with a soft constraint.
@@ -20,13 +24,7 @@ class RLSBase(ABC, BaseModel):
     """
 
     def __init__(
-        self,
-        config: Config,
-        stochastic: bool,
-        constr_wt: float = 3.0,
-        num_examples: int = 1000,
-        num_features: int = 500,
-        noise_stddev: float = 0.1,
+        self, config: Config, stochastic: bool, constr_wt: float = 3.0
     ):
         """Initialize and store everything needed for training.
 
@@ -34,25 +32,20 @@ class RLSBase(ABC, BaseModel):
             config: The hyper-param config
             stochastic: Whether to have stochasticity in the gradients
             constr_wt: The weight of the constraint term
-            num_examples: The number of examples in the input matrix
-            num_features: The number of features in the input matrix
-            noise_stddev: The standard deviation of the added noise
         """
         super().__init__()
         self.config = config
         self.stochastic = stochastic
         self.constr_wt = constr_wt
-        self.num_examples = num_examples
-        self.num_features = num_features
 
-        self.x = Parameter(torch.randn(num_features, 1))
-        self.y = Parameter(torch.randn(num_examples, 1))
+        self.x = Parameter(torch.randn(NUM_FEATURES, 1))
+        self.y = Parameter(torch.randn(NUM_EXAMPLES, 1))
 
         self.A = Parameter(self._get_input_matrix(), requires_grad=False)
         self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
 
-        x_orig = torch.randn(num_features, 1)
-        epsilon = torch.randn(num_examples, 1) * noise_stddev
+        x_orig = torch.randn(NUM_FEATURES, 1)
+        epsilon = torch.randn(NUM_EXAMPLES, 1) * NOISE_STDDEV
         self.y_0 = Parameter(self.A @ x_orig + epsilon, requires_grad=False)
 
         term_1 = torch.linalg.pinv(self.A.T @ self.M @ self.A)
@@ -104,14 +97,9 @@ class RLSBase(ABC, BaseModel):
     ) -> torch.Tensor:
         """Run one training step."""
         # Stochastic indices to only choose certain "examples" for a batch
-        if self.stochastic:
-            idxs = torch.randperm(self.num_examples)[: self.config.batch_size]
-        else:
-            idxs = torch.arange(self.num_examples)
-
-        term_1 = self.A[idxs] @ self.x - self.y[idxs]
-        term_2 = self.y[idxs] - self.y_0[idxs]
-        term_3 = self.M[idxs][:, idxs]
+        term_1 = self.A[batch] @ self.x - self.y[batch]
+        term_2 = self.y[batch] - self.y_0[batch]
+        term_3 = self.M[batch][:, batch]
         loss = (
             term_1.T @ term_3 @ term_1
             - self.constr_wt * term_2.T @ term_3 @ term_2
@@ -181,10 +169,10 @@ class RLSLowConditionNum(RLSBase):
         super().__init__(config, stochastic)
 
     def _get_input_matrix(self) -> torch.Tensor:
-        return torch.randn(self.num_examples, self.num_features)
+        return torch.randn(NUM_EXAMPLES, NUM_FEATURES)
 
     def _get_norm_matrix(self) -> torch.Tensor:
-        return torch.eye(self.num_examples)
+        return torch.eye(NUM_EXAMPLES)
 
 
 class RLSHighConditionNum(RLSBase):
@@ -205,24 +193,22 @@ class RLSHighConditionNum(RLSBase):
         super().__init__(config, stochastic, constr_wt=self.CONSTR_WT)
 
     def _get_input_matrix(self) -> torch.Tensor:
-        A_covar = torch.empty(self.num_features, self.num_features)
-        for i in range(self.num_features):
-            for j in range(self.num_features):
+        A_covar = torch.empty(NUM_FEATURES, NUM_FEATURES)
+        for i in range(NUM_FEATURES):
+            for j in range(NUM_FEATURES):
                 A_covar[i, j] = 2 ** (-math.fabs(i - j) / 10)
 
-        A_distr = MultivariateNormal(torch.zeros(self.num_features), A_covar)
-        return A_distr.sample([self.num_examples])
+        A_distr = MultivariateNormal(torch.zeros(NUM_FEATURES), A_covar)
+        return A_distr.sample([NUM_EXAMPLES])
 
     def _get_norm_matrix(self) -> torch.Tensor:
-        eigenvecs = torch.linalg.qr(
-            torch.randn(self.num_examples, self.num_examples)
-        )[0]
-        rank = int(self.RANK_FRACTION * self.num_examples)
+        eigenvecs = torch.linalg.qr(torch.randn(NUM_EXAMPLES, NUM_EXAMPLES))[0]
+        rank = int(self.RANK_FRACTION * NUM_EXAMPLES)
         eigenvals = torch.cat(
             [
                 torch.rand(rank) * (self.EIGENVAL_MAX - self.EIGENVAL_MIN)
                 + self.EIGENVAL_MIN,
-                torch.zeros(self.num_examples - rank),
+                torch.zeros(NUM_EXAMPLES - rank),
             ]
         )
         return eigenvecs.T @ torch.diagflat(eigenvals) @ eigenvecs

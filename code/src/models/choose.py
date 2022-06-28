@@ -1,32 +1,10 @@
 """Utility function to choose a model."""
-from itertools import product
-from typing import Final, Iterable, NoReturn
-
 from pytorch_lightning import LightningModule
 
 from ..config import Config
+from ..utils import invalid_task_error
 from .rls import RLSHighConditionNum, RLSLowConditionNum
 from .wgan import WGAN
-
-
-def _combine_desc(*args: Iterable[str]) -> Iterable[str]:
-    """Get the task names by combining allowed names.
-
-    Example:
-        >>> list(_combine_desc(["wgan"], ["linear", "nn"]))
-        ["wgan/linear", "wgan/nn"]
-    """
-    return map(lambda x: "/".join(x), product(*args))
-
-
-AVAIL_TASKS: Final = [
-    *_combine_desc(["wgan"], ["linear", "nn"]),
-    *_combine_desc(["rls"], ["low", "high"], ["full", "stoc"]),
-]
-
-
-def _invalid_task_err(task: str) -> NoReturn:
-    raise ValueError(f"Invalid task: {task}")
 
 
 def get_model(task: str, config: Config) -> LightningModule:
@@ -48,13 +26,13 @@ def get_model(task: str, config: Config) -> LightningModule:
         elif desc[2] == "full":
             stochastic = False
         else:
-            _invalid_task_err(task)
+            invalid_task_error(task)
 
         if desc[1] == "low":
             return RLSLowConditionNum(config, stochastic)
         elif desc[1] == "high":
             return RLSHighConditionNum(config, stochastic)
         else:
-            _invalid_task_err(task)
+            invalid_task_error(task)
     else:
-        _invalid_task_err(task)
+        invalid_task_error(task)
