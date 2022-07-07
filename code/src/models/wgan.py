@@ -1,7 +1,6 @@
 """Class definitions for WGAN models for covariance matrix learning."""
 from typing import Any, Dict, Final, Tuple
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.nn import Bilinear, Linear, Module, Parameter
@@ -185,11 +184,6 @@ class WGAN(BaseModel):
     ) -> None:
         self.log("metrics/wasserstein", wass_dist)
 
-        # Use numpy to calculate covariance, as PyTorch sometimes returns
-        # non-positive-definite matrices
-        fake_cov = torch.from_numpy(np.cov(fake.T.cpu().numpy()))
-        fake_cholesky = torch.linalg.cholesky_ex(fake_cov)[0].to(
-            fake.device, fake.dtype
-        )
-        distance = (fake_cholesky - self.cholesky).norm() ** 2
+        real_cov = self.cholesky @ self.cholesky.T
+        distance = (fake.T.cov() - real_cov).norm()
         self.log("metrics/distance", distance)
