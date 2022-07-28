@@ -14,8 +14,6 @@ from ..schedulers import get_scheduler
 from .base import BaseModel
 
 DATA_SEED: Final = 0  # The seed for the "dataset"
-NUM_EXAMPLES: Final = 1000  # The number of examples in the input matrix
-NUM_FEATURES: Final = 500  # The number of features in the input matrix
 NOISE_STDDEV: Final = 0.1  # The standard deviation of the added noise
 
 
@@ -26,13 +24,20 @@ class RLSBase(ABC, BaseModel):
     """
 
     def __init__(
-        self, config: Config, stochastic: bool, constr_wt: float = 3.0
+        self,
+        config: Config,
+        stochastic: bool,
+        num_examples: int = 1000,
+        num_features: int = 500,
+        constr_wt: float = 3.0,
     ):
         """Initialize and store everything needed for training.
 
         Args:
             config: The hyper-param config
             stochastic: Whether to have stochasticity in the gradients
+            num_examples: The number of examples in the input matrix
+            num_features: The number of features in the input matrix
             constr_wt: The weight of the constraint term
         """
         super().__init__()
@@ -40,8 +45,8 @@ class RLSBase(ABC, BaseModel):
         self.stochastic = stochastic
         self.constr_wt = constr_wt
 
-        self.x = Parameter(torch.randn(NUM_FEATURES, 1))
-        self.y = Parameter(torch.randn(NUM_EXAMPLES, 1))
+        self.x = Parameter(torch.randn(num_features, 1))
+        self.y = Parameter(torch.randn(num_examples, 1))
 
         # Seed the "dataset" separately
         with isolate_rng():
@@ -50,8 +55,8 @@ class RLSBase(ABC, BaseModel):
             self.A = Parameter(self._get_input_matrix(), requires_grad=False)
             self.M = Parameter(self._get_norm_matrix(), requires_grad=False)
 
-            x_orig = torch.randn(NUM_FEATURES, 1)
-            epsilon = torch.randn(NUM_EXAMPLES, 1) * NOISE_STDDEV
+            x_orig = torch.randn(num_features, 1)
+            epsilon = torch.randn(num_examples, 1) * NOISE_STDDEV
 
         self.y_0 = Parameter(self.A @ x_orig + epsilon, requires_grad=False)
 
@@ -166,6 +171,9 @@ class RLSBase(ABC, BaseModel):
 class RLSLowConditionNum(RLSBase):
     """The robust least squares model with a low condition number."""
 
+    NUM_EXAMPLES: Final = 1000  # The number of examples in the input matrix
+    NUM_FEATURES: Final = 500  # The number of features in the input matrix
+
     def __init__(self, config: Config, stochastic: bool):
         """Initialize and store everything needed for training.
 
@@ -173,18 +181,25 @@ class RLSLowConditionNum(RLSBase):
             config: The hyper-param config
             stochastic: Whether to have stochasticity in the gradients
         """
-        super().__init__(config, stochastic)
+        super().__init__(
+            config,
+            stochastic=stochastic,
+            num_examples=self.NUM_EXAMPLES,
+            num_features=self.NUM_FEATURES,
+        )
 
     def _get_input_matrix(self) -> torch.Tensor:
-        return torch.randn(NUM_EXAMPLES, NUM_FEATURES)
+        return torch.randn(self.NUM_EXAMPLES, self.NUM_FEATURES)
 
     def _get_norm_matrix(self) -> torch.Tensor:
-        return torch.eye(NUM_EXAMPLES)
+        return torch.eye(self.NUM_EXAMPLES)
 
 
 class RLSHighConditionNum(RLSBase):
     """The robust least squares model with a high condition number."""
 
+    NUM_EXAMPLES: Final = 1000  # The number of examples in the input matrix
+    NUM_FEATURES: Final = 500  # The number of features in the input matrix
     CONSTR_WT: Final = 1.5  # The weight of the constraint term
     RANK_FRACTION: Final = 0.95  # The rank as a fraction of dimensionality
     EIGENVAL_MIN: Final = 0.2  # Minimum value of non-zero eigenvalues
@@ -197,25 +212,33 @@ class RLSHighConditionNum(RLSBase):
             config: The hyper-param config
             stochastic: Whether to have stochasticity in the gradients
         """
-        super().__init__(config, stochastic, constr_wt=self.CONSTR_WT)
+        super().__init__(
+            config,
+            stochastic,
+            num_examples=self.NUM_EXAMPLES,
+            num_features=self.NUM_FEATURES,
+            constr_wt=self.CONSTR_WT,
+        )
 
     def _get_input_matrix(self) -> torch.Tensor:
-        A_covar = torch.empty(NUM_FEATURES, NUM_FEATURES)
-        for i in range(NUM_FEATURES):
-            for j in range(NUM_FEATURES):
+        A_covar = torch.empty(self.NUM_FEATURES, self.NUM_FEATURES)
+        for i in range(self.NUM_FEATURES):
+            for j in range(self.NUM_FEATURES):
                 A_covar[i, j] = 2 ** (-math.fabs(i - j) / 10)
 
-        A_distr = MultivariateNormal(torch.zeros(NUM_FEATURES), A_covar)
-        return A_distr.sample([NUM_EXAMPLES])
+        A_distr = MultivariateNormal(torch.zeros(self.NUM_FEATURES), A_covar)
+        return A_distr.sample([self.NUM_EXAMPLES])
 
     def _get_norm_matrix(self) -> torch.Tensor:
-        eigenvecs = torch.linalg.qr(torch.randn(NUM_EXAMPLES, NUM_EXAMPLES))[0]
-        rank = int(self.RANK_FRACTION * NUM_EXAMPLES)
+        eigenvecs = torch.linalg.qr(
+            torch.randn(self.NUM_EXAMPLES, self.NUM_EXAMPLES)
+        )[0]
+        rank = int(self.RANK_FRACTION * self.NUM_EXAMPLES)
         eigenvals = torch.cat(
             [
                 torch.rand(rank) * (self.EIGENVAL_MAX - self.EIGENVAL_MIN)
                 + self.EIGENVAL_MIN,
-                torch.zeros(NUM_EXAMPLES - rank),
+                torch.zeros(self.NUM_EXAMPLES - rank),
             ]
         )
         return eigenvecs.T @ torch.diagflat(eigenvals) @ eigenvecs

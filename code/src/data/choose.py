@@ -40,8 +40,10 @@ def get_datasets(
         else:
             invalid_task_error(task)
 
-        train_dataset = RLSDataset(config, stochastic=stochastic)
-        val_dataset = FirstItemDataset(RLSDataset(config, stochastic=False))
+        train_dataset = RLSDataset(config, stochastic=stochastic, mode=desc[1])
+        val_dataset = FirstItemDataset(
+            RLSDataset(config, stochastic=False, mode=desc[1])
+        )
 
     else:
         invalid_task_error(task)
