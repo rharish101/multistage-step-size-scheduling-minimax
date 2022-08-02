@@ -31,7 +31,7 @@ class LinearGenerator(Module):
 class NNGenerator(Module):
     """A non-linear neural-net-based generator."""
 
-    HIDDEN_SIZE: Final = 5
+    HIDDEN_SIZE: Final = 50
 
     def __init__(self) -> None:
         """Initialize the model weights."""
