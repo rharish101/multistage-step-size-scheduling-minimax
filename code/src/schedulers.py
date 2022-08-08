@@ -10,7 +10,9 @@ from .config import Config
 def get_scheduler(optim: Optimizer, config: Config):
     """Get a scheduler given its name."""
     if config.sched == "step":
-        return StepDecay(optim, config.decay, config.total_steps)
+        return StepDecay(
+            optim, config.decay, config.total_steps, config.phase_scale
+        )
     elif config.sched == "var":
         return VariablePhaseStepDecay(
             optim,
@@ -33,15 +35,22 @@ def get_scheduler(optim: Optimizer, config: Config):
 class StepDecay(StepLR):
     """Classic step-decay scheduler."""
 
-    def __init__(self, optim: Optimizer, decay: float, total_steps: int):
+    def __init__(
+        self,
+        optim: Optimizer,
+        decay: float,
+        total_steps: int,
+        phase_scale: float = 1.0,
+    ):
         """Initialize the step decay scheduling function.
 
         Args:
             optim: The main optimizer
             decay: The decay factor
             total_steps: The total steps for training the model
+            phase_scale: The scaling factor for the phase length
         """
-        total_phases = math.log(total_steps, decay)
+        total_phases = math.log(total_steps, decay) / phase_scale
         phase_length = int(total_steps / total_phases)
         super().__init__(optim, step_size=phase_length, gamma=1 / decay)
 

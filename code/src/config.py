@@ -17,6 +17,8 @@ class Config:
         x_lr: The learning rate for minimization
         y_lr: The learning rate for maximization
         decay: The learning rate decay factor
+        phase_scale: The scaling factor for the phase length for the "step"
+            scheduler
         start_phase_len: The starting phase length for the "var" scheduler
         total_steps: The total steps for training the model
         seed: The global random seed (for reproducibility)
@@ -27,6 +29,7 @@ class Config:
     x_lr: float = 1e-1
     y_lr: float = 5e-1
     decay: float = 2.0
+    phase_scale: float = 1.0
     start_phase_len: int = 500
     total_steps: int = 20000
     seed: int = 0
