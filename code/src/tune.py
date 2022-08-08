@@ -1,49 +1,107 @@
 """Utilities for tuning hyper-parameters."""
-import math
 import pickle
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from itertools import product
 from pathlib import Path
-from typing import Any, Dict, Final, Optional
+from typing import Any, Callable, Dict, Final, List, Optional
 
 import numpy as np
 import yaml
-from hyperopt import STATUS_FAIL, STATUS_OK, Trials, fmin, hp, space_eval, tpe
-from numpy.random import Generator, default_rng
 
 from .config import Config, update_config
 from .train import train
 
-# Where to save the best config after tuning
+# File name for the best config after tuning
 BEST_CONFIG_FILE: Final = "best-hparams.yaml"
 
-# Where to save the pickle file for hyperopt's progress
-TRIALS_FILE: Final = "trials.pkl"
+# File name for the tuning progress pickle file
+PROGRESS_FILE: Final = "progress.pkl"
 
-# Bounds for learning rate tuning
-_MIN_LR: Final = math.log(1e-6)
-_MAX_LR: Final = math.log(1e-2)
+# Grid of scaling for learning rate tuning
+_LR_SCALE_GRID: Final = 3.0 ** np.arange(-4, 5)
+
+# Type for hyper-params
+HyperParamsType = Dict[str, Any]
 
 
 @dataclass
-class _Progress:
-    """Class for saving hyperopt progress."""
+class Progress:
+    """Class for saving tuning progress."""
 
-    trials: Trials
-    rng: Generator
+    inputs: List[HyperParamsType] = field(default_factory=list)
+    losses: List[Optional[float]] = field(default_factory=list)
+    argmin: Optional[HyperParamsType] = None
+    amin: Optional[float] = None
 
 
-def _get_hparam_space(config: Config) -> Dict[str, Any]:
+def _get_hparam_space(config: Config) -> Dict[str, List[Any]]:
     """Get the hyper-param tuning space for the given config."""
     return {
-        "x_lr": hp.loguniform("x_lr", _MIN_LR, _MAX_LR),
-        "y_lr": hp.loguniform("y_lr", _MIN_LR, _MAX_LR),
+        "x_lr": (config.x_lr * _LR_SCALE_GRID).tolist(),
+        "y_lr": (config.y_lr * _LR_SCALE_GRID).tolist(),
     }
+
+
+def grid_search(
+    objective: Callable[[int, HyperParamsType], Optional[float]],
+    space: Dict[str, List[Any]],
+    progress_path: Optional[Path] = None,
+) -> Progress:
+    """Perform grid search to find the lowest value of the objective.
+
+    A KeyboardInterrupt can be sent to terminate grid search early.
+
+    Args:
+        objective: The objective function to minimize. The first argument
+            should be the current iteration number, and the second argument
+            should be the hyper-params.
+        space: The mapping of hyper-param names to the list of possible values
+            in the grid
+        progress_path: The path where to save the progress after every
+            evaluation. If a progress file already exists, then evaluation is
+            continued from where it left off.
+
+    Returns:
+        The progress of the hyper-param search so far.
+    """
+    if progress_path is None:
+        progress = Progress()
+    elif progress_path.exists():
+        with open(progress_path, "rb") as progress_reader:
+            progress = pickle.load(progress_reader)
+    else:
+        progress = Progress()
+        progress_path.parent.mkdir(parents=True)
+
+    names, individual_grids = zip(*space.items())
+    try:
+        for tuning_iter, values in enumerate(product(*individual_grids)):
+            if tuning_iter < len(progress.losses):
+                continue
+
+            hyper_params = dict(zip(names, values))
+            progress.inputs.append(hyper_params)
+            loss = objective(tuning_iter, hyper_params)
+            progress.losses.append(loss)
+
+            if loss is not None and (
+                progress.amin is None or loss < progress.amin
+            ):
+                progress.amin = loss
+                progress.argmin = hyper_params
+
+            if progress_path is not None:
+                with open(progress_path, "wb") as progress_writer:
+                    pickle.dump(progress, progress_writer)
+    except KeyboardInterrupt:
+        print("Caught KeyboardInterrupt; ending hyper-param search")
+
+    return progress
 
 
 def tune(
     task: str,
     config: Config,
-    tuning_steps: int,
     objective_tag: str,
     num_gpus: int,
     num_workers: int,
@@ -52,14 +110,13 @@ def tune(
     log_dir: Path,
     run_name: str,
     minimize: bool = True,
-    trials_path: Optional[Path] = None,
+    progress_path: Optional[Path] = None,
 ) -> Config:
     """Tune hyper-params and return the best config.
 
     Args:
         task: A string specifying the optimization task
         config: The hyper-param config
-        tuning_steps: The total steps for tuning the model
         objective_tag: The tag for the metric to be optimized
         num_gpus: The number of GPUs to use (-1 to use all)
         num_workers: The number of workers to use for loading/processing the
@@ -69,23 +126,23 @@ def tune(
         log_dir: The path to the directory where all logs are to be stored
         run_name: The name for this tuning run
         minimize: Whether the metric is to be minimzed or maximized
-        trials_path: The path to the pickled trials file to resume tuning from
-            (None to tune from scratch). This overrides `run_name`.
+        progress_path: The path to the pickled progress file to resume tuning
+            from (None to tune from scratch). This overrides `run_name`.
 
     Returns:
         The metrics for validation at the end of the model
     """
     # The log directory stucture should be as follows:
     # log_dir/task/run_name/eval-{num}/
-    # The trials pickle should be at: log_dir/task/run_name/trials.pkl
-    if trials_path is not None:
-        trials_path = trials_path.resolve()
+    # The progress pickle should be at: log_dir/task/run_name/progress.pkl
+    if progress_path is not None:
+        progress_path = progress_path.resolve()
         log_dir = log_dir.resolve()
         try:
-            run_name = str(trials_path.parent.relative_to(log_dir / task))
+            run_name = str(progress_path.parent.relative_to(log_dir / task))
         except ValueError:
             raise ValueError(
-                f'Invalid trials path "{trials_path}"; it should be a '
+                f'Invalid progress path "{progress_path}"; it should be a '
                 f'sub-directory of "{log_dir / task}"'
             )
 
@@ -106,52 +163,27 @@ def tune(
         metric = metrics[objective_tag]
         return metric if minimize else -metric
 
-    def objective_wrapper(*args, **kwargs) -> Dict[str, Any]:
+    def objective_wrapper(*args, **kwargs) -> Optional[float]:
         try:
-            loss = objective(*args, **kwargs)
-            status = STATUS_FAIL if np.isnan(loss) else STATUS_OK
+            raw_loss = objective(*args, **kwargs)
+            loss = None if np.isnan(raw_loss) else raw_loss
         except Exception:
-            loss = 0.0
-            status = STATUS_FAIL
+            loss = None
+        return loss
 
-        return {"loss": loss, "status": status}
+    if progress_path is None:
+        progress_path = log_dir / task / run_name / PROGRESS_FILE
 
-    if trials_path is None:
-        trials = Trials()
-        rng = default_rng(config.seed)
-        trials_path = log_dir / task / run_name / TRIALS_FILE
-    else:
-        with open(trials_path, "rb") as trials_reader:
-            progress: _Progress = pickle.load(trials_reader)
-        trials = progress.trials
-        rng = progress.rng
+    progress = grid_search(
+        objective_wrapper,
+        space=_get_hparam_space(config),
+        progress_path=progress_path,
+    )
 
-    space = _get_hparam_space(config)
+    if progress.argmin is None:
+        raise RuntimeError("Failed to run hyper-param search")
 
-    # To skip saving the pickle file for previously-completed iterations
-    evals_done = len(trials.results)
-
-    try:
-        for tuning_iter in range(evals_done, tuning_steps):
-            fmin(
-                lambda args: objective_wrapper(tuning_iter, args),
-                space,
-                algo=tpe.suggest,
-                trials=trials,
-                # We need only one iteration, and we've already finished
-                # `tuning_iter` iterations
-                max_evals=tuning_iter + 1,
-                show_progressbar=False,
-                rstate=rng,
-            )
-            with open(trials_path, "wb") as trials_writer:
-                pickle.dump(_Progress(trials, rng), trials_writer)
-    except KeyboardInterrupt:
-        print("Caught KeyboardInterrupt; ending hyper-param search")
-
-    best_hparams = space_eval(space, trials.argmin)
-    best_config = update_config(config, best_hparams)
-
+    best_config = update_config(config, progress.argmin)
     with open(
         log_dir / task / run_name / BEST_CONFIG_FILE, "w"
     ) as best_config_file:

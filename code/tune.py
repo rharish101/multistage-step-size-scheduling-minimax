@@ -20,7 +20,6 @@ def main(args: Namespace) -> None:
     tune(
         args.task,
         config,
-        tuning_steps=args.tune_steps,
         objective_tag="metrics/distance",
         num_gpus=args.num_gpus,
         num_workers=args.num_workers,
@@ -28,7 +27,7 @@ def main(args: Namespace) -> None:
         log_steps=args.log_steps,
         log_dir=args.log_dir,
         run_name=run_name,
-        trials_path=args.resume_path,
+        progress_path=args.resume_path,
     )
 
 
@@ -63,12 +62,6 @@ if __name__ == "__main__":
         help="Floating-point precision to use (16 implies AMP)",
     )
     parser.add_argument(
-        "--tune-steps",
-        type=int,
-        default=100,
-        help="The max evaluations for tuning the hyper-params",
-    )
-    parser.add_argument(
         "-w",
         "--num-workers",
         type=int,
@@ -90,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--resume-path",
         type=Path,
-        help="Path to the trials file from where to continue",
+        help="Path to the progress file from where to continue",
     )
     parser.add_argument(
         "--run-name",
