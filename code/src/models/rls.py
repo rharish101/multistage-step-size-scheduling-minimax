@@ -198,7 +198,7 @@ class RLSLowConditionNum(RLSBase):
 class RLSHighConditionNum(RLSBase):
     """The robust least squares model with a high condition number."""
 
-    NUM_EXAMPLES: Final = 100  # The number of examples in the input matrix
+    NUM_EXAMPLES: Final = 1000  # The number of examples in the input matrix
     NUM_FEATURES: Final = 50  # The number of features in the input matrix
     CONSTR_WT: Final = 1.5  # The weight of the constraint term
     RANK_FRACTION: Final = 0.95  # The rank as a fraction of dimensionality
