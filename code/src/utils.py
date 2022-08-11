@@ -7,14 +7,14 @@ def _combine_desc(*args: Iterable[str]) -> Iterable[str]:
     """Get the task names by combining allowed names.
 
     Example:
-        >>> list(_combine_desc(["wgan"], ["linear", "nn"]))
-        ["wgan/linear", "wgan/nn"]
+        >>> list(_combine_desc(["covar"], ["linear", "nn"]))
+        ["covar/linear", "covar/nn"]
     """
     return map(lambda x: "/".join(x), product(*args))
 
 
 AVAIL_TASKS: Final = [
-    *_combine_desc(["wgan"], ["linear", "nn"]),
+    *_combine_desc(["covar"], ["linear", "nn"]),
     *_combine_desc(["rls"], ["low", "high"], ["full", "stoc"]),
 ]
 

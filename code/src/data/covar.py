@@ -1,9 +1,9 @@
-"""Class definitions for datasets used in WGAN models."""
+"""Class definitions for datasets used for covariance matrix learning."""
 from typing import Iterable
 
 import torch
 
-from ..models.wgan import DIMS
+from ..models.covar import DIMS
 from .common import RNGDatasetBase
 
 

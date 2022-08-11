@@ -7,8 +7,8 @@ from torch.utils.data import Dataset
 from ..config import Config
 from ..utils import invalid_task_error
 from .common import FirstItemDataset
+from .covar import StandardNormalDataset
 from .rls import RLSDataset
-from .wgan import StandardNormalDataset
 
 
 def get_datasets(
@@ -26,7 +26,7 @@ def get_datasets(
     """
     desc = task.split("/")
 
-    if desc[0] == "wgan":
+    if desc[0] == "covar":
         train_dataset = StandardNormalDataset(config)
         val_dataset: Dataset[Tensor] = FirstItemDataset(
             StandardNormalDataset(config)

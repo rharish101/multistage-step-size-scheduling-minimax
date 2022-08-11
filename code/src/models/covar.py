@@ -1,4 +1,4 @@
-"""Class definitions for WGAN models for covariance matrix learning."""
+"""Class definitions for the WGAN for covariance matrix learning."""
 from typing import Any, Dict, Final, Tuple
 
 import torch
@@ -57,8 +57,8 @@ class PLCritic(Module):
         return self.bilinear(x, x).squeeze(-1)
 
 
-class WGAN(BaseModel):
-    """The WGAN model."""
+class CovarWGAN(BaseModel):
+    """The WGAN model for covariance matrix learning."""
 
     REG_WT: Final = 0.3  # The L2 regularization weight
     REAL_STDDEV: Final = 0.1  # The standard deviation for the "real" data
