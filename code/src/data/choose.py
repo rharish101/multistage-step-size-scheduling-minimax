@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 
 from ..config import Config
 from ..utils import invalid_task_error
+from .cifar10 import CIFAR10TrainDataset, CIFAR10ValDataset
 from .common import FirstItemDataset
 from .covar import StandardNormalDataset
 from .rls import RLSDataset
@@ -44,6 +45,10 @@ def get_datasets(
         val_dataset = FirstItemDataset(
             RLSDataset(config, stochastic=False, mode=desc[1])
         )
+
+    elif desc[0] == "cifar10":
+        train_dataset = CIFAR10TrainDataset(config)
+        val_dataset = CIFAR10ValDataset(config)
 
     else:
         invalid_task_error(task)

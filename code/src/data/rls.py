@@ -2,13 +2,14 @@
 from typing import Iterable
 
 import torch
+from torch.utils.data import IterableDataset
 
 from ..config import Config
 from ..models.rls import RLSHighConditionNum, RLSLowConditionNum
 from .common import RNGDatasetBase
 
 
-class RLSDataset(RNGDatasetBase[torch.Tensor]):
+class RLSDataset(IterableDataset[torch.Tensor], RNGDatasetBase[torch.Tensor]):
     """Returns indices used for sampling "rows" from the RLS dataset.
 
     The actual dataset should be within the RLS model instance.

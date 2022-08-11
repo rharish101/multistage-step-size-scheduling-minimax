@@ -2,7 +2,7 @@
 from typing import TypeVar
 
 from torch import Generator
-from torch.utils.data import Dataset, IterableDataset, get_worker_info
+from torch.utils.data import Dataset, get_worker_info
 
 from ..config import Config
 
@@ -25,7 +25,7 @@ class FirstItemDataset(Dataset[T]):
         return 1
 
 
-class RNGDatasetBase(IterableDataset[T]):
+class RNGDatasetBase(Dataset[T]):
     """Base class for a dataset that yields by sampling with an RNG."""
 
     def __init__(self, config: Config):

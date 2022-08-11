@@ -16,6 +16,7 @@ def _combine_desc(*args: Iterable[str]) -> Iterable[str]:
 AVAIL_TASKS: Final = [
     *_combine_desc(["covar"], ["linear", "nn"]),
     *_combine_desc(["rls"], ["low", "high"], ["full", "stoc"]),
+    "cifar10",
 ]
 
 

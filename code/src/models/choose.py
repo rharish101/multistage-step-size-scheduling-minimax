@@ -4,6 +4,7 @@ from pytorch_lightning import LightningModule
 from ..config import Config
 from ..utils import invalid_task_error
 from .covar import CovarWGAN
+from .cifar10 import CIFAR10GAN
 from .rls import RLSHighConditionNum, RLSLowConditionNum
 
 
@@ -34,5 +35,7 @@ def get_model(task: str, config: Config) -> LightningModule:
             return RLSHighConditionNum(config, stochastic)
         else:
             invalid_task_error(task)
+    elif desc[0] == "cifar10":
+        return CIFAR10GAN(config)
     else:
         invalid_task_error(task)

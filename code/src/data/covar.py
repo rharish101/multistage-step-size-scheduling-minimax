@@ -2,12 +2,15 @@
 from typing import Iterable
 
 import torch
+from torch.utils.data import IterableDataset
 
 from ..models.covar import DIMS
 from .common import RNGDatasetBase
 
 
-class StandardNormalDataset(RNGDatasetBase[torch.Tensor]):
+class StandardNormalDataset(
+    IterableDataset[torch.Tensor], RNGDatasetBase[torch.Tensor]
+):
     """Returns samples from the standard normal distribution."""
 
     def __iter__(self) -> Iterable[torch.Tensor]:
