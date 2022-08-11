@@ -14,9 +14,10 @@ class Config:
         batch_size: The batch size for training
         sched: The choice of scheduler (must be one of: const, step, var, poly,
             poly-sqrt)
-        x_lr: The maximum learning rate for the generator
-        y_lr: The maximum learning rate for the critic
+        x_lr: The learning rate for minimization
+        y_lr: The learning rate for maximization
         decay: The learning rate decay factor
+        start_phase_len: The starting phase length for the "var" scheduler
         total_steps: The total steps for training the model
         seed: The global random seed (for reproducibility)
     """
