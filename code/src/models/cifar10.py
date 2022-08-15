@@ -1,5 +1,5 @@
 """Class definitions for the CIFAR10 GAN."""
-from typing import Any, Dict, Final, Optional, Tuple
+from typing import Any, Dict, Final, List, Optional, Tuple
 
 import torch
 from torch import Tensor
@@ -13,6 +13,7 @@ from torch.nn import (
     Identity,
     Linear,
     Module,
+    Parameter,
     PixelShuffle,
     ReLU,
     Sequential,
@@ -21,9 +22,10 @@ from torch.nn import (
 )
 from torch.nn.utils.parametrizations import spectral_norm
 from torch.optim import Adam
+from torchmetrics.image import FrechetInceptionDistance, InceptionScore
 
 from ..config import Config
-from ..data.cifar10 import IMG_DIMS, NOISE_DIMS
+from ..data.cifar10 import IMG_DIMS, IMG_MEAN, IMG_STD_DEV, NOISE_DIMS
 from ..schedulers import get_scheduler
 from .base import BaseModel
 
@@ -215,7 +217,17 @@ class CIFAR10GAN(BaseModel):
 
         self.gen = Generator()
         self.disc = Discriminator()
+
         self.loss = BCEWithLogitsLoss()
+        self.inc_score = InceptionScore()
+        self.fid = FrechetInceptionDistance(reset_real_features=False)
+
+        self._img_mean = Parameter(
+            torch.tensor(IMG_MEAN), requires_grad=False
+        ).reshape(1, -1, 1, 1)
+        self._img_std_dev = Parameter(
+            torch.tensor(IMG_STD_DEV), requires_grad=False
+        ).reshape(1, -1, 1, 1)
 
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
@@ -270,6 +282,27 @@ class CIFAR10GAN(BaseModel):
 
         return loss
 
+    def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
+        """Run one validation step."""
+        noise, real = batch
+        fake = self.gen(noise)
+
+        real_img = self._tensor_to_img(real)
+        fake_img = self._tensor_to_img(fake)
+
+        self.inc_score.update(fake_img)
+        self.fid.update(real_img, real=True)
+        self.fid.update(fake_img, real=False)
+
+    def validation_epoch_end(self, outputs: List[Tensor]) -> None:
+        """Compute metrics across the entire validation dataset."""
+        self.log("metrics/inception_score", self.inc_score.compute()[0])
+        self.log("metrics/fid", self.fid.compute())
+
+        # Reset metrics for next validation epoch
+        self.inc_score.reset()
+        self.fid.reset()
+
     def _log_gan_train_metrics(self, loss: Tensor) -> None:
         """Log all metrics.
 
@@ -299,3 +332,10 @@ class CIFAR10GAN(BaseModel):
         self.log("learning_rate/y", disc_sched.get_last_lr()[0])
 
         self.log("metrics/gan_loss", loss)
+
+    def _tensor_to_img(self, tensor: Tensor) -> Tensor:
+        """Convert a zero-mean unit-variance tensor to a uint8 image."""
+        mean = self._img_mean.to(tensor.device)
+        std_dev = self._img_std_dev.to(tensor.device)
+        float_img = tensor * std_dev + mean
+        return (float_img * 255).byte()
