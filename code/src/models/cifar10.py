@@ -290,6 +290,9 @@ class CIFAR10GAN(BaseModel):
         real_img = self._tensor_to_img(real)
         fake_img = self._tensor_to_img(fake)
 
+        self.logger.experiment.add_images("real", real_img)
+        self.logger.experiment.add_images("generated", fake_img)
+
         self.inc_score.update(fake_img)
         self.fid.update(real_img, real=True)
         self.fid.update(fake_img, real=False)
