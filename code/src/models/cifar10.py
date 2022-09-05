@@ -1,5 +1,5 @@
 """Class definitions for the CIFAR10 GAN."""
-from typing import Any, Dict, Final, List, Optional, Tuple
+from typing import Any, Dict, Final, List, Tuple
 
 import torch
 from torch import Tensor
@@ -94,6 +94,54 @@ class ResBlockUp(Module):
         return self.main(x) + self.skip(x)
 
 
+class ResBlockDiscFirst(Module):
+    """The first residual block for the discriminator.
+
+    This downsamples the inputs by a factor of two.
+
+    The main connection consists of:
+        - Conv2d
+        - ReLU
+        - Conv2d
+        - AvgPool2d
+
+    The skip connection consists of:
+        - AvgPool2d
+        - Conv2d
+    """
+
+    def __init__(self, in_channels: int, out_channels: int):
+        """Initialize the layers.
+
+        Args:
+            out_channels: The number of channels for the output
+            in_channels: The number of channels for the input
+        """
+        super().__init__()
+
+        self.main = Sequential(
+            spectral_norm(
+                Conv2d(in_channels, out_channels, 3, padding="same")
+            ),
+            ReLU(),
+            spectral_norm(
+                Conv2d(out_channels, out_channels, 3, padding="same")
+            ),
+            AvgPool2d(2),
+        )
+
+        self.skip = Sequential(
+            AvgPool2d(2),
+            spectral_norm(
+                Conv2d(in_channels, out_channels, 3, padding="same")
+            ),
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Get the residual block outputs."""
+        return self.main(x) + self.skip(x)
+
+
 class ResBlockDown(Module):
     """A residual block for the discriminator.
 
@@ -109,45 +157,31 @@ class ResBlockDown(Module):
         - AvgPool2d
     """
 
-    def __init__(
-        self,
-        out_channels: int,
-        in_channels: Optional[int] = None,
-        downsample: int = 2,
-    ):
+    def __init__(self, channels: int, downsample: int = 2):
         """Initialize the layers.
 
         Args:
-            out_channels: The number of channels for the output
-            in_channels: The number of channels for the input
+            channels: The number of channels for the output
             downsample: The scale factor for downsampling the inputs
         """
         super().__init__()
 
-        if in_channels is None:
-            in_channels = out_channels
-
         self.main = Sequential(
             ReLU(),
-            spectral_norm(
-                Conv2d(in_channels, out_channels, 3, padding="same")
-            ),
+            spectral_norm(Conv2d(channels, channels, 3, padding="same")),
             ReLU(),
-            spectral_norm(
-                Conv2d(out_channels, out_channels, 3, padding="same")
-            ),
+            spectral_norm(Conv2d(channels, channels, 3, padding="same")),
             AvgPool2d(downsample) if downsample > 1 else Identity(),
         )
 
         self.skip = Sequential()
-        if downsample > 1 or in_channels != out_channels:
-            self.skip.append(
-                spectral_norm(
-                    Conv2d(in_channels, out_channels, 3, padding="same")
-                )
-            )
         if downsample > 1:
-            self.skip.append(AvgPool2d(downsample))
+            self.skip = Sequential(
+                spectral_norm(Conv2d(channels, channels, 3, padding="same")),
+                AvgPool2d(downsample),
+            )
+        else:
+            self.skip = Identity()
 
     def forward(self, x: Tensor) -> Tensor:
         """Get the residual block outputs."""
@@ -188,7 +222,7 @@ class Discriminator(Module):
         """Initialize the layers."""
         super().__init__()
         self.model = Sequential(
-            ResBlockDown(self.CHANNELS, in_channels=IMG_DIMS),
+            ResBlockDiscFirst(IMG_DIMS, self.CHANNELS),
             ResBlockDown(self.CHANNELS),
             ResBlockDown(self.CHANNELS, downsample=1),
             ResBlockDown(self.CHANNELS, downsample=1),
