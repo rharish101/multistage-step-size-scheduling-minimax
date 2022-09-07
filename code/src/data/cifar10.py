@@ -18,10 +18,6 @@ CIFAR10ItemType = Tuple[Tensor, Tensor]
 NOISE_DIMS: Final = 128  # The number of dimensions of the generator's input
 IMG_DIMS: Final = 3  # The number of dimensions of the generator's output
 
-# The mean and standard deviation for each image channel
-IMG_MEAN: Final = (0.4914, 0.4822, 0.4465)
-IMG_STD_DEV: Final = (0.2470, 0.2435, 0.2616)
-
 
 def get_transform() -> Module:
     """Get the image augmentations for CIFAR10.
@@ -31,7 +27,7 @@ def get_transform() -> Module:
     """
     transform_list = [
         transforms.ToTensor(),
-        transforms.Normalize(IMG_MEAN, IMG_STD_DEV),
+        transforms.Lambda(lambda x: x * 2 - 1),
     ]
     return transforms.Compose(transform_list)
 

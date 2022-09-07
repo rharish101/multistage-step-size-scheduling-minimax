@@ -13,7 +13,6 @@ from torch.nn import (
     Identity,
     Linear,
     Module,
-    Parameter,
     PixelShuffle,
     ReLU,
     Sequential,
@@ -25,7 +24,7 @@ from torch.optim import Adam
 from torchmetrics.image import FrechetInceptionDistance, InceptionScore
 
 from ..config import Config
-from ..data.cifar10 import IMG_DIMS, IMG_MEAN, IMG_STD_DEV, NOISE_DIMS
+from ..data.cifar10 import IMG_DIMS, NOISE_DIMS
 from ..schedulers import get_scheduler
 from .base import BaseModel
 
@@ -256,13 +255,6 @@ class CIFAR10GAN(BaseModel):
         self.inc_score = InceptionScore()
         self.fid = FrechetInceptionDistance(reset_real_features=False)
 
-        self._img_mean = Parameter(
-            torch.tensor(IMG_MEAN), requires_grad=False
-        ).reshape(1, -1, 1, 1)
-        self._img_std_dev = Parameter(
-            torch.tensor(IMG_STD_DEV), requires_grad=False
-        ).reshape(1, -1, 1, 1)
-
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
         gen_optim = Adam(
@@ -372,7 +364,5 @@ class CIFAR10GAN(BaseModel):
 
     def _tensor_to_img(self, tensor: Tensor) -> Tensor:
         """Convert a zero-mean unit-variance tensor to a uint8 image."""
-        mean = self._img_mean.to(tensor.device)
-        std_dev = self._img_std_dev.to(tensor.device)
-        float_img = tensor * std_dev + mean
+        float_img = (tensor + 1) / 2
         return (float_img * 255).byte()
