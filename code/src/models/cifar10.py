@@ -78,7 +78,7 @@ class ResBlockUp(Module):
             Conv2d(channels, channels, 3, padding="same", bias=False),
             BatchNorm2d(channels),
             ReLU(),
-            Conv2d(channels, channels, 3, padding="same", bias=False),
+            Conv2d(channels, channels, 3, padding="same"),
         )
 
         if upsample > 1:
@@ -197,7 +197,7 @@ class Generator(Module):
         """Initialize the layers."""
         super().__init__()
         self.model = Sequential(
-            Linear(NOISE_DIMS, self.CHANNELS * 4 * 4, bias=False),
+            Linear(NOISE_DIMS, self.CHANNELS * 4 * 4),
             Unflatten(-1, (self.CHANNELS, 4, 4)),
             ResBlockUp(self.CHANNELS),
             ResBlockUp(self.CHANNELS),
