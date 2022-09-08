@@ -7,7 +7,6 @@ from torch.nn import (
     AdaptiveAvgPool2d,
     AvgPool2d,
     BatchNorm2d,
-    BCEWithLogitsLoss,
     Conv2d,
     Flatten,
     Identity,
@@ -251,7 +250,6 @@ class CIFAR10GAN(BaseModel):
         self.gen = Generator()
         self.disc = Discriminator()
 
-        self.loss = BCEWithLogitsLoss()
         self.inc_score = InceptionScore()
         self.fid = FrechetInceptionDistance(reset_real_features=False)
 
@@ -292,10 +290,10 @@ class CIFAR10GAN(BaseModel):
 
         if optimizer_idx == 0:  # Discriminator update
             disc_real = self.disc(real).reshape(-1)
-            loss = self.loss(disc_fake, torch.zeros_like(disc_fake))
-            loss += self.loss(disc_real, torch.ones_like(disc_real))
+            loss = (1 - disc_real).clip(min=0.0).mean()
+            loss += (1 + disc_fake).clip(min=0.0).mean()
         else:  # Generator update
-            loss = self.loss(disc_fake, torch.ones_like(disc_fake))
+            loss = -disc_fake.mean()
 
         # Log only during the critic update, since only then is the total GAN
         # loss calculated
