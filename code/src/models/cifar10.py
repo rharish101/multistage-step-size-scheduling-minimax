@@ -82,7 +82,7 @@ class ResBlockUp(Module):
         if upsample > 1:
             self.skip = Sequential(
                 PixelShuffleSelf(upsample),
-                Conv2d(channels, channels, 3, padding="same", bias=False),
+                Conv2d(channels, channels, 1, bias=False),
             )
         else:
             self.skip = Identity()
@@ -130,9 +130,7 @@ class ResBlockDiscFirst(Module):
 
         self.skip = Sequential(
             AvgPool2d(2),
-            spectral_norm(
-                Conv2d(in_channels, out_channels, 3, padding="same")
-            ),
+            spectral_norm(Conv2d(in_channels, out_channels, 1)),
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -175,7 +173,7 @@ class ResBlockDown(Module):
         self.skip = Sequential()
         if downsample > 1:
             self.skip = Sequential(
-                spectral_norm(Conv2d(channels, channels, 3, padding="same")),
+                spectral_norm(Conv2d(channels, channels, 1)),
                 AvgPool2d(downsample),
             )
         else:
