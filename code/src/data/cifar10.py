@@ -55,18 +55,15 @@ class CIFAR10TrainDataset(
             A batch of CIFAR10 images
         """
         rng = self._get_rng()
+        batch_size = self.config.batch_size * self.config.y_steps_per_x_step
         while True:
-            for start_idx in range(0, len(self.data), self.config.batch_size):
-                noise = torch.randn(
-                    self.config.batch_size, NOISE_DIMS, generator=rng
-                )
+            for start_idx in range(0, len(self.data), batch_size):
+                noise = torch.randn(batch_size, NOISE_DIMS, generator=rng)
                 data = [
                     self.data[idx]
                     for idx in range(
                         start_idx,
-                        min(
-                            len(self.data), start_idx + self.config.batch_size
-                        ),
+                        min(len(self.data), start_idx + batch_size),
                     )
                 ]
                 img, classes = zip(*data)

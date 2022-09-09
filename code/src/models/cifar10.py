@@ -253,6 +253,9 @@ class CIFAR10GAN(BaseModel):
         self.inc_score = InceptionScore()
         self.fid = FrechetInceptionDistance(reset_real_features=False)
 
+        # Enables manual optimization for multiple disc steps per gen step
+        self.automatic_optimization = False
+
     def configure_optimizers(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Return the optimizers and schedulers for the GAN."""
         gen_optim = Adam(
@@ -280,31 +283,54 @@ class CIFAR10GAN(BaseModel):
         # Train the discriminator first, then the generator
         return disc_config, gen_config
 
-    def training_step(
-        self, batch: Tensor, batch_idx: int, optimizer_idx: int
-    ) -> Tensor:
-        """Run one training step."""
-        noise, real = batch
+    def _gen_step(self, noise: Tensor) -> Tensor:
+        """Run one training step for the generator."""
         fake = self.gen(noise)
         disc_fake = self.disc(fake).reshape(-1)
-
-        if optimizer_idx == 0:  # Discriminator update
-            disc_real = self.disc(real).reshape(-1)
-            loss = (1 - disc_real).clip(min=0.0).mean()
-            loss += (1 + disc_fake).clip(min=0.0).mean()
-        else:  # Generator update
-            loss = -disc_fake.mean()
-
-        # Log only during the critic update, since only then is the total GAN
-        # loss calculated
-        if (
-            batch_idx % self.trainer.log_every_n_steps == 0
-            and optimizer_idx == 0
-        ):
-            with torch.no_grad():
-                self._log_gan_train_metrics(-loss)
-
+        loss = -disc_fake.mean()
         return loss
+
+    def _disc_step(self, noise: Tensor, real: Tensor) -> Tensor:
+        """Run one training step for the discriminator."""
+        fake = self.gen(noise)
+        disc_fake = self.disc(fake).reshape(-1)
+        disc_real = self.disc(real).reshape(-1)
+
+        loss = (1 - disc_real).clip(min=0.0).mean()
+        loss += (1 + disc_fake).clip(min=0.0).mean()
+        return loss
+
+    def training_step(self, batch: Tensor, batch_idx: int) -> Tensor:
+        """Optimize one GAN training step."""
+        noise, real = batch
+        disc_optim, gen_optim = self.optimizers()
+        disc_sched, gen_sched = self.lr_schedulers()
+
+        for i in range(0, noise.shape[0], self.config.batch_size):
+            noise_curr = noise[i : i + self.config.batch_size]
+            real_curr = real[i : i + self.config.batch_size]
+            disc_loss = self._disc_step(noise_curr, real_curr)
+            disc_optim.zero_grad()
+            self.manual_backward(disc_loss)
+            disc_optim.step()
+
+        # Log only during the disc update, since only then is the total GAN
+        # loss calculated
+        if batch_idx % self.trainer.log_every_n_steps == 0:
+            with torch.no_grad():
+                self._log_gan_train_metrics(-disc_loss)
+
+        gen_loss = self._gen_step(noise[: self.config.batch_size])
+        gen_optim.zero_grad()
+        self.manual_backward(gen_loss)
+        gen_optim.step()
+
+        # Update schedulers after evey GAN step
+        disc_sched.step()
+        gen_sched.step()
+
+        # Need by `self.training_step_end` to check for NaN
+        return gen_loss
 
     def validation_step(self, batch: Tensor, batch_idx: int) -> Tensor:
         """Run one validation step."""

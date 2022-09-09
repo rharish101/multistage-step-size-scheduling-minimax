@@ -78,8 +78,8 @@ def train(
         precision = max(precision, 32)  # allow 64-bit precision
 
     trainer = Trainer(
-        # Critic and generator have separate steps
-        max_steps=config.total_steps * 2,
+        # X and Y have separate steps
+        max_steps=config.total_steps * (1 + config.y_steps_per_x_step),
         # Used to limit the progress bar
         limit_train_batches=config.total_steps,
         logger=logger,
