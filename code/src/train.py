@@ -21,6 +21,7 @@ def train(
     precision: int,
     log_steps: int,
     log_dir: Path,
+    val_steps: int,
     expt_name: Optional[str] = None,
     run_name: Optional[str] = None,
 ) -> Dict[str, float]:
@@ -34,6 +35,7 @@ def train(
         precision: Floating-point precision to use (16 implies AMP)
         log_steps: Step interval for logging training metrics
         log_dir: Path to the directory where to save logs and weights
+        val_steps: Step interval for logging validation metrics (0 to disable)
         expt_name: The name for this class of experiments
         run_name: The name for this training run
     """
@@ -82,9 +84,14 @@ def train(
         auto_select_gpus=num_gpus != 0,
         strategy="ddp",
         precision=precision,
-        val_check_interval=1,
+        val_check_interval=val_steps if val_steps > 0 else None,
+        num_sanity_val_steps=0,
     )
-    trainer.fit(model, train_dataloaders=train_dataloader)
+    trainer.fit(
+        model,
+        train_dataloaders=train_dataloader,
+        val_dataloaders=val_dataloader,
+    )
 
     # Pytorch Lightning catches KeyboardInterrupt, but doesn't raise it
     if trainer.interrupted:

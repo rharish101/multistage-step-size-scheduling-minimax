@@ -28,6 +28,7 @@ def main(args: Namespace) -> None:
             precision=args.precision,
             log_steps=args.log_steps,
             log_dir=args.log_dir,
+            val_steps=args.val_steps,
             expt_name=args.task,
             run_name=f"{run_name}/expt-{expt_num}"
             if args.num_expts != 1
@@ -83,6 +84,12 @@ if __name__ == "__main__":
         type=int,
         default=50,
         help="Step interval for logging training metrics",
+    )
+    parser.add_argument(
+        "--val-steps",
+        type=int,
+        default=0,
+        help="Step interval for logging validation metrics (0 to disable)",
     )
     parser.add_argument(
         "--run-name",
