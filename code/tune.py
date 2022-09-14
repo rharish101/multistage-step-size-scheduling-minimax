@@ -65,7 +65,7 @@ if __name__ == "__main__":
         "-w",
         "--num-workers",
         type=int,
-        default=4,
+        default=0,
         help="Number of worker processes to use for loading data",
     )
     parser.add_argument(
