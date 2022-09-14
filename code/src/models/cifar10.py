@@ -225,7 +225,7 @@ class Discriminator(Module):
             ReLU(),
             AdaptiveAvgPool2d(1),
             Flatten(start_dim=-3),
-            spectral_norm(Linear(self.CHANNELS, 1)),
+            spectral_norm(Linear(self.CHANNELS, 1, bias=False)),
         )
 
     def forward(self, x: Tensor) -> Tensor:
