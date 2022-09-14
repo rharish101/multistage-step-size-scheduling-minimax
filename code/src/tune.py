@@ -156,6 +156,7 @@ def tune(
             precision=precision,
             log_steps=log_steps,
             log_dir=log_dir / task,
+            val_steps=0,  # Speed up the execution by skipping validation
             expt_name=run_name,  # Keep all logs inside this folder
             run_name=f"eval-{tuning_iter}",
         )
