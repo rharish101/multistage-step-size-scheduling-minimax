@@ -20,13 +20,14 @@ def main(args: Namespace) -> None:
     tune(
         args.task,
         config,
-        objective_tag="metrics/distance",
+        objective_tag=args.objective,
         num_gpus=args.num_gpus,
         num_workers=args.num_workers,
         precision=args.precision,
         log_steps=args.log_steps,
         log_dir=args.log_dir,
         run_name=run_name,
+        minimize=not args.maximize,
         progress_path=args.resume_path,
     )
 
@@ -67,6 +68,16 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="Number of worker processes to use for loading data",
+    )
+    parser.add_argument(
+        "--objective",
+        default="metrics/distance",
+        help="The tag of the metric to optimize",
+    )
+    parser.add_argument(
+        "--maximize",
+        action="store_true",
+        help="Whether to maximize the objective metric instead of minimizing",
     )
     parser.add_argument(
         "--log-dir",
