@@ -3,8 +3,10 @@
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
+from warnings import warn
 
 from src.config import load_config, update_config
+from src.models import NaNLossError
 from src.train import train
 from src.utils import AVAIL_TASKS
 
@@ -20,20 +22,27 @@ def main(args: Namespace) -> None:
 
     for expt_num in range(args.num_expts):
         expt_config = update_config(config, {"seed": config.seed + expt_num})
-        train(
-            args.task,
-            expt_config,
-            num_gpus=args.num_gpus,
-            num_workers=args.num_workers,
-            precision=args.precision,
-            log_steps=args.log_steps,
-            log_dir=args.log_dir,
-            val_steps=args.val_steps,
-            expt_name=args.task,
-            run_name=f"{run_name}/expt-{expt_num}"
-            if args.num_expts != 1
-            else run_name,
-        )
+        try:
+            train(
+                args.task,
+                expt_config,
+                num_gpus=args.num_gpus,
+                num_workers=args.num_workers,
+                precision=args.precision,
+                log_steps=args.log_steps,
+                log_dir=args.log_dir,
+                val_steps=args.val_steps,
+                expt_name=args.task,
+                run_name=f"{run_name}/expt-{expt_num}"
+                if args.num_expts != 1
+                else run_name,
+            )
+        except NaNLossError as ex:
+            if args.num_expts > 1:
+                warn(f"Encountered NaN loss for experiment {expt_num}")
+                continue
+            else:
+                raise ex
 
 
 if __name__ == "__main__":
