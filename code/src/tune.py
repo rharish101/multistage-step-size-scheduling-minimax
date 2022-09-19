@@ -3,6 +3,7 @@ import pickle
 from dataclasses import dataclass, field
 from itertools import product
 from pathlib import Path
+from traceback import print_exception
 from typing import Any, Callable, Dict, Final, List, Optional
 
 import numpy as np
@@ -168,7 +169,8 @@ def tune(
         try:
             raw_loss = objective(*args, **kwargs)
             loss = None if np.isnan(raw_loss) else raw_loss
-        except Exception:
+        except Exception as ex:
+            print_exception(type(ex), ex, ex.__traceback__)
             loss = None
         return loss
 
