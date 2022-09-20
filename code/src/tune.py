@@ -72,7 +72,7 @@ def grid_search(
             progress = pickle.load(progress_reader)
     else:
         progress = Progress()
-        progress_path.parent.mkdir(parents=True)
+        progress_path.parent.mkdir(parents=True, exist_ok=True)
 
     names, individual_grids = zip(*space.items())
     try:
