@@ -25,6 +25,7 @@ def train(
     expt_name: Optional[str] = None,
     run_name: Optional[str] = None,
     save_ckpt: bool = True,
+    progress_bar: bool = True,
 ) -> Dict[str, float]:
     """Train a model for the given task.
 
@@ -40,6 +41,7 @@ def train(
         expt_name: The name for this class of experiments
         run_name: The name for this training run
         save_ckpt: Whether to save checkpoints at the end of training
+        progress_bar: Whether to display a progress bar
     """
     # Seed everything, just in case we missed a step using randomness somewhere
     seed_everything(config.seed, workers=True)
@@ -89,6 +91,7 @@ def train(
         val_check_interval=val_steps if val_steps > 0 else None,
         num_sanity_val_steps=0,
         enable_checkpointing=save_ckpt,
+        enable_progress_bar=progress_bar,
     )
     trainer.fit(
         model,

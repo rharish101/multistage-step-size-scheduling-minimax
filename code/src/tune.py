@@ -161,6 +161,7 @@ def tune(
             expt_name=run_name,  # Keep all logs inside this folder
             run_name=f"eval-{tuning_iter}",
             save_ckpt=False,  # Save disk space
+            progress_bar=False,  # Reduce unnecessary output
         )
 
         metric = metrics[objective_tag]
