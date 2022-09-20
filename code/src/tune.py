@@ -160,6 +160,7 @@ def tune(
             val_steps=0,  # Speed up the execution by skipping validation
             expt_name=run_name,  # Keep all logs inside this folder
             run_name=f"eval-{tuning_iter}",
+            save_ckpt=False,  # Save disk space
         )
 
         metric = metrics[objective_tag]

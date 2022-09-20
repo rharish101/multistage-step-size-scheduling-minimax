@@ -88,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log-steps",
         type=int,
-        default=50,
+        default=2000,
         help="Step interval for logging training metrics",
     )
     parser.add_argument(

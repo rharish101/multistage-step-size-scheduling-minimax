@@ -24,6 +24,7 @@ def train(
     val_steps: int,
     expt_name: Optional[str] = None,
     run_name: Optional[str] = None,
+    save_ckpt: bool = True,
 ) -> Dict[str, float]:
     """Train a model for the given task.
 
@@ -38,6 +39,7 @@ def train(
         val_steps: Step interval for logging validation metrics (0 to disable)
         expt_name: The name for this class of experiments
         run_name: The name for this training run
+        save_ckpt: Whether to save checkpoints at the end of training
     """
     # Seed everything, just in case we missed a step using randomness somewhere
     seed_everything(config.seed, workers=True)
@@ -86,6 +88,7 @@ def train(
         precision=precision,
         val_check_interval=val_steps if val_steps > 0 else None,
         num_sanity_val_steps=0,
+        enable_checkpointing=save_ckpt,
     )
     trainer.fit(
         model,

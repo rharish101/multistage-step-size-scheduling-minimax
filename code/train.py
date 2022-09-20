@@ -36,6 +36,7 @@ def main(args: Namespace) -> None:
                 run_name=f"{run_name}/expt-{expt_num}"
                 if args.num_expts != 1
                 else run_name,
+                save_ckpt=args.save,
             )
         except NaNLossError as ex:
             if args.num_expts > 1:
@@ -110,5 +111,11 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="The total number of experiments to run",
+    )
+    parser.add_argument(
+        "--no-save",
+        dest="save",
+        action="store_false",
+        help="Whether to skip saving the checkpoints",
     )
     main(parser.parse_args())
