@@ -71,7 +71,7 @@ def main(args: Namespace) -> None:
         axes.set_yscale("log")
 
         tag_trimmed = tag.replace("/", "-")
-        fig_path = Path(f"{args.prefix}{tag_trimmed}.png")
+        fig_path = Path(f"{args.prefix}{tag_trimmed}.pdf")
         if not fig_path.parent.exists():
             fig_path.parent.mkdir(parents=True)
         plt.savefig(fig_path, bbox_inches="tight")
