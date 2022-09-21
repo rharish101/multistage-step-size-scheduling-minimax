@@ -63,7 +63,11 @@ def main(args: Namespace) -> None:
     for tag, tag_name in _TAGS_TO_PLOT[args.task.split("/")[0]]:
         tag_data = data[data["tag"] == tag]
         axes = sns.lineplot(
-            data=tag_data, x="step", y="value", hue=_MODE_TO_COL[args.mode]
+            data=tag_data,
+            x="step",
+            y="value",
+            hue=_MODE_TO_COL[args.mode],
+            ci="sd",
         )
 
         axes.set_xlabel("Steps")
