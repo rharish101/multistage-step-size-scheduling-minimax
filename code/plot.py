@@ -13,7 +13,10 @@ from src.config import load_config
 
 sns.set()
 
-_TAGS_TO_PLOT: Final = ("metrics/distance", "metrics/potential")
+_TAGS_TO_PLOT: Final = [
+    ("metrics/distance", "Distance"),
+    ("metrics/potential", "Potential"),
+]  # The metrics to plot (as separate plots), with their names
 _MODE_TO_COL: Final = {
     "sched": "Scheduler",
     "decay": "Decay",
@@ -46,17 +49,17 @@ def main(args: Namespace) -> None:
 
     assert data is not None
 
-    for tag in _TAGS_TO_PLOT:
+    for tag, tag_name in _TAGS_TO_PLOT:
         tag_data = data[data["tag"] == tag]
         axes = sns.lineplot(
             data=tag_data, x="step", y="value", hue=_MODE_TO_COL[args.mode]
         )
 
-        tag_trimmed = tag.split("/")[-1]
         axes.set_xlabel("Steps")
-        axes.set_ylabel(tag_trimmed.capitalize())
+        axes.set_ylabel(tag_name)
         axes.set_yscale("log")
 
+        tag_trimmed = tag.replace("/", "-")
         fig_path = Path(f"{args.prefix}{tag_trimmed}.png")
         if not fig_path.parent.exists():
             fig_path.parent.mkdir(parents=True)
