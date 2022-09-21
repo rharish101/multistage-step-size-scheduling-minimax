@@ -10,13 +10,24 @@ import seaborn as sns
 from tbparse import SummaryReader
 
 from src.config import load_config
+from src.utils import AVAIL_TASKS
 
 sns.set()
 
-_TAGS_TO_PLOT: Final = [
-    ("metrics/distance", "Distance"),
-    ("metrics/potential", "Potential"),
-]  # The metrics to plot (as separate plots), with their names
+_TAGS_TO_PLOT: Final = {
+    "rls": [
+        ("metrics/distance", "Distance"),
+        ("metrics/potential", "Potential"),
+    ],
+    "covar": [
+        ("metrics/distance", "Distance"),
+        ("gradients/x", "Gradients w.r.t. X"),
+    ],
+    "cifar10": [
+        ("metrics/fid", "FID"),
+        ("metrics/inception_score", "Inception Score"),
+    ],
+}  # The metrics to plot (as separate plots), with their names
 _MODE_TO_COL: Final = {
     "sched": "Scheduler",
     "decay": "Decay",
@@ -49,7 +60,7 @@ def main(args: Namespace) -> None:
 
     assert data is not None
 
-    for tag, tag_name in _TAGS_TO_PLOT:
+    for tag, tag_name in _TAGS_TO_PLOT[args.task.split("/")[0]]:
         tag_data = data[data["tag"] == tag]
         axes = sns.lineplot(
             data=tag_data, x="step", y="value", hue=_MODE_TO_COL[args.mode]
@@ -71,6 +82,11 @@ if __name__ == "__main__":
     parser = ArgumentParser(
         description="Generate plots for comparing schedulers",
         formatter_class=ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "task",
+        choices=AVAIL_TASKS,
+        help="A string specifying the optimization task",
     )
     parser.add_argument(
         "mode",
