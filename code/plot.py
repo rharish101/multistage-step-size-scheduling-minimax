@@ -74,7 +74,7 @@ def main(args: Namespace) -> None:
         fig_path = Path(f"{args.prefix}{tag_trimmed}.pdf")
         if not fig_path.parent.exists():
             fig_path.parent.mkdir(parents=True)
-        plt.savefig(fig_path, bbox_inches="tight")
+        plt.savefig(fig_path, bbox_inches="tight", pad_inches=0)
         axes.clear()
 
 
