@@ -14,6 +14,7 @@ from src.utils import AVAIL_TASKS
 
 sns.set()
 
+_SMOOTH_ALPHA: Final = 0.4  # The smoothing factor
 _TAGS_TO_PLOT: Final = {
     "rls": [
         ("metrics/distance", "Distance"),
@@ -61,11 +62,17 @@ def main(args: Namespace) -> None:
     assert data is not None
 
     for tag, tag_name in _TAGS_TO_PLOT[args.task.split("/")[0]]:
-        tag_data = data[data["tag"] == tag]
+        tag_data = data[data["tag"] == tag].copy()
+
+        # Smooth the values per-tag and per-"group" (eg. per-scheduler)
+        tag_data["smoothed"] = tag_data.groupby(_MODE_TO_COL[args.mode])[
+            "value"
+        ].apply(lambda x: x.ewm(alpha=_SMOOTH_ALPHA).mean())
+
         axes = sns.lineplot(
             data=tag_data,
             x="step",
-            y="value",
+            y="smoothed",
             hue=_MODE_TO_COL[args.mode],
             ci="sd",
         )
