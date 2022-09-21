@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from tbparse import SummaryReader
+from tqdm import tqdm
 
 from src.config import load_config
 from src.utils import AVAIL_TASKS
@@ -67,7 +68,7 @@ def main(args: Namespace) -> None:
     data: Optional[pd.DataFrame] = None
 
     # Sort log dirs for determinism
-    for path in sorted(args.log_dir):
+    for path in tqdm(sorted(args.log_dir)):
         path_data = SummaryReader(path).scalars
         config_path = path / "hparams.yaml"
         if not config_path.exists():
