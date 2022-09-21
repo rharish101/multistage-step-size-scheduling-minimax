@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Final, Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 from tbparse import SummaryReader
@@ -42,6 +43,25 @@ _SCHED_TO_NAME: Final = {
 }  # Used for naming schedulers in the legend
 
 
+def format_row(row):
+    """Format one row of the final metrics in scientific notation.
+
+    Example: 5.23 ± 0.14 x 10^-3
+    """
+    mean_mantissa, mean_exp = f"{row['mean']:.3e}".split("e")
+    if np.isinf(row["std"]) or np.isnan(row["std"]):
+        adjusted_std_mantissa = row["std"]
+    else:
+        std_mantissa, std_exp = f"{row['std']:.3e}".split("e")
+        adjusted_std_mantissa = float(std_mantissa) * 10 ** (
+            int(std_exp) - int(mean_exp)
+        )
+    return (
+        f"{mean_mantissa} ± {adjusted_std_mantissa:.3f} x "
+        f"10^{int(mean_exp)}"
+    )
+
+
 def main(args: Namespace) -> None:
     """Run the main function."""
     data: Optional[pd.DataFrame] = None
@@ -68,6 +88,16 @@ def main(args: Namespace) -> None:
         tag_data["smoothed"] = tag_data.groupby(_MODE_TO_COL[args.mode])[
             "value"
         ].apply(lambda x: x.ewm(alpha=_SMOOTH_ALPHA).mean())
+
+        # Get mean and std for the final values
+        final_metrics = tag_data.groupby(_MODE_TO_COL[args.mode]).apply(
+            lambda df: df.loc[df["step"] == df["step"].max(), "smoothed"].agg(
+                ["mean", "std"]
+            )
+        )
+
+        print(f"{tag}:")
+        print(final_metrics.apply(format_row, axis=1))
 
         axes = sns.lineplot(
             data=tag_data,
