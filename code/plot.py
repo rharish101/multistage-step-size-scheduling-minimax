@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Generate plots for comparing schedulers."""
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
 from pathlib import Path
 from typing import Any, Final, Optional
 
@@ -66,7 +66,8 @@ def main(args: Namespace) -> None:
 
 if __name__ == "__main__":
     parser = ArgumentParser(
-        description="Generate plots for comparing schedulers"
+        description="Generate plots for comparing schedulers",
+        formatter_class=ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "mode",
