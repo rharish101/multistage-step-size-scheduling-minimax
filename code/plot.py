@@ -69,7 +69,10 @@ def main(args: Namespace) -> None:
     # Sort log dirs for determinism
     for path in sorted(args.log_dir):
         path_data = SummaryReader(path).scalars
-        config = load_config(path / "hparams.yaml")
+        config_path = path / "hparams.yaml"
+        if not config_path.exists():
+            continue
+        config = load_config(config_path)
 
         if args.mode == "sched":
             name: Any = _SCHED_TO_NAME[config.sched]
