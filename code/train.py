@@ -74,7 +74,7 @@ if __name__ == "__main__":
         "-p",
         "--precision",
         type=int,
-        default=16,
+        default=32,
         help="Floating-point precision to use (16 implies AMP)",
     )
     parser.add_argument(
