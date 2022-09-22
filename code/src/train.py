@@ -25,6 +25,7 @@ def train(
     expt_name: Optional[str] = None,
     run_name: Optional[str] = None,
     save_ckpt: bool = True,
+    log_extra_metrics: bool = True,
     progress_bar: bool = True,
 ) -> Dict[str, float]:
     """Train a model for the given task.
@@ -41,6 +42,7 @@ def train(
         expt_name: The name for this class of experiments
         run_name: The name for this training run
         save_ckpt: Whether to save checkpoints at the end of training
+        log_extra_metrics: Whether to log extra metrics (such as images)
         progress_bar: Whether to display a progress bar
     """
     # Seed everything, just in case we missed a step using randomness somewhere
@@ -55,7 +57,7 @@ def train(
     # RNG
     with isolate_rng():
         seed_everything(config.seed)
-        model = get_model(task, config)
+        model = get_model(task, config, log_extra_metrics)
 
     # These should be using RNGs within, so there's no need to isolate the
     # global RNG

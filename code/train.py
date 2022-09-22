@@ -37,6 +37,7 @@ def main(args: Namespace) -> None:
                 if args.num_expts != 1
                 else run_name,
                 save_ckpt=args.save,
+                log_extra_metrics=args.log_extra_metrics,
             )
         except NaNLossError as ex:
             if args.num_expts > 1:
@@ -94,6 +95,12 @@ if __name__ == "__main__":
         type=int,
         default=50,
         help="Step interval for logging training metrics",
+    )
+    parser.add_argument(
+        "--no-log-extra",
+        dest="log_extra_metrics",
+        action="store_false",
+        help="Whether to skip logging extra metrics (such as images)",
     )
     parser.add_argument(
         "--val-steps",

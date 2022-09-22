@@ -236,14 +236,16 @@ class Discriminator(Module):
 class CIFAR10GAN(BaseModel):
     """The CIFAR10 GAN model."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, log_extra_metrics: bool = True):
         """Initialize and store everything needed for training.
 
         Args:
             config: The hyper-param config
+            log_extra_metrics: Whether to log extra metrics (such as images)
         """
         super().__init__()
         self.config = config
+        self.log_extra_metrics = log_extra_metrics
 
         self.gen = Generator()
         self.disc = Discriminator()
@@ -338,8 +340,9 @@ class CIFAR10GAN(BaseModel):
         real_img = self._tensor_to_img(real)
         fake_img = self._tensor_to_img(fake)
 
-        self.logger.experiment.add_images("real", real_img)
-        self.logger.experiment.add_images("generated", fake_img)
+        if self.log_extra_metrics:
+            self.logger.experiment.add_images("real", real_img)
+            self.logger.experiment.add_images("generated", fake_img)
 
         self.inc_score.update(fake_img)
         self.fid.update(real_img, real=True)
