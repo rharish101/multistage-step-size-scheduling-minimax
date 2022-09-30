@@ -1,7 +1,7 @@
 # Multistage Step Size Scheduling for Minimax Problems
 
 This is a repository for my Master's thesis under the [Optimization & Decision Intelligence group](https://odi.inf.ethz.ch/) at ETH Zürich.
-The full thesis will be soon uploaded to the [Research Collection of ETH Zürich](https://www.research-collection.ethz.ch/).
+The full thesis can be found [here](https://www.research-collection.ethz.ch/handle/20.500.11850/572991).
 
 #### Supervisors
 - [Ilyas Fatkhullin](https://scholar.google.com/citations?user=G2OzFpIAAAAJ)
@@ -22,3 +22,21 @@ We also show how multistage schedulers also improve performance when run on prac
 
 The [code](code/) directory contains the code used for running the experiments.
 Please refer to the README located at [`code/README.md`](code/README.md) for details on how to run the code.
+
+## Citation
+
+```
+@MASTERSTHESIS{20.500.11850/572991,
+	copyright = {In Copyright - Non-Commercial Use Permitted},
+	year = {2022},
+	type = {Master Thesis},
+	author = {Rajagopal, Harish},
+	size = {67 p.},
+	language = {en},
+	address = {Zurich},
+	publisher = {ETH Zurich},
+	DOI = {10.3929/ethz-b-000572991},
+	title = {Multistage Step Size Scheduling for Minimax Problems},
+	school = {ETH Zurich}
+}
+```
