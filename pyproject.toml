@@ -18,7 +18,6 @@ torchmetrics = {extras = ["image"], version = "^0.9.3"}
 
 [tool.poetry.dev-dependencies]
 pre-commit = "^2.19.0"
-ipykernel = "^6.13.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
