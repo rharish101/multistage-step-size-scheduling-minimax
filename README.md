@@ -99,6 +99,7 @@ total_steps: 2000
 
 You can store configs in a directory named `configs` located in the root of this repository.
 It has an entry in the [`.gitignore`](./.gitignore) file so that custom configs aren't picked up by git.
+This directory already contains the configs corresponding to the experiments whose results are used in the thesis.
 
 The available hyper-parameters, their documentation and default values are specified in the `Config` class in the file [`src/config.py`](./src/config.py).
 

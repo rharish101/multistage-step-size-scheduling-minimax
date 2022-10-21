@@ -1,0 +1,7 @@
+batch_size: 64
+sched: poly
+x_lr: 8.0e-04
+y_lr: 8.0e-04
+decay: 0.002
+total_steps: 50000
+y_steps_per_x_step: 5

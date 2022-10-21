@@ -1,0 +1,7 @@
+batch_size: 64
+sched: var
+x_lr: 5.0e-04
+y_lr: 5.0e-04
+start_phase_len: 2000
+total_steps: 50000
+y_steps_per_x_step: 5

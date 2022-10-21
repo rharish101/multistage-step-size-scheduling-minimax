@@ -1,0 +1,9 @@
+batch_size: 128
+decay: 2.0
+phase_scale: 1.0
+sched: var
+seed: 0
+start_phase_len: 2000
+total_steps: 50000
+x_lr: 0.0004938271604938272
+y_lr: 16.2

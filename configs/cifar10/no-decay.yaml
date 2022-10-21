@@ -1,0 +1,6 @@
+batch_size: 64
+sched: const
+x_lr: 1.5e-04
+y_lr: 1.5e-04
+total_steps: 50000
+y_steps_per_x_step: 5

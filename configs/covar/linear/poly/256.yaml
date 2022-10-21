@@ -1,0 +1,9 @@
+batch_size: 256
+decay: 0.002
+phase_scale: 1.0
+sched: poly
+seed: 0
+start_phase_len: 500
+total_steps: 20000
+x_lr: 0.24
+y_lr: 3.6
