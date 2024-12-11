@@ -1,7 +1,7 @@
 # Multistage Step Size Scheduling for Minimax Problems
 
 This is a repository for the code used for running the experiments for my Master's thesis under the [Optimization & Decision Intelligence group](https://odi.inf.ethz.ch/) at ETH Zürich.
-The full thesis can be found [here](https://www.research-collection.ethz.ch/handle/20.500.11850/572991).
+The full thesis can be found [here](https://doi.org/10.3929/ethz-b-000572991).
 
 #### Supervisors
 - [Ilyas Fatkhullin](https://scholar.google.com/citations?user=G2OzFpIAAAAJ)
